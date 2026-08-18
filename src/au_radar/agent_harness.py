@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from au_radar.catalogue import AgentTask
+from au_radar.catalogue import AgentTask, Catalogue
 
 TOOLS = [
     {
@@ -119,3 +119,14 @@ def run_agent_task(page, client, task: AgentTask, model: str, max_steps: int = 1
         trace.steps.append(AgentStep(action=action, args=args, observation=observation))
 
     return trace
+
+
+def run_all_agent_trials(
+    page_factory, client, catalogue: Catalogue, n_trials: int, model: str, max_steps: int = 15,
+) -> list[AgentTrace]:
+    traces = []
+    for task in catalogue.agent_tasks:
+        for _ in range(n_trials):
+            page = page_factory()
+            traces.append(run_agent_task(page, client, task, model=model, max_steps=max_steps))
+    return traces

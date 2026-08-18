@@ -1,5 +1,5 @@
-from au_radar.catalogue import AgentTask
-from au_radar.agent_harness import run_agent_task
+from au_radar.catalogue import AgentTask, Catalogue
+from au_radar.agent_harness import run_agent_task, run_all_agent_trials
 
 
 class FakeMessage:
@@ -63,3 +63,21 @@ def test_agent_trace_records_finish_outcome_when_model_calls_finish(fixture_serv
 
     assert trace.outcome == "blocked"
     assert trace.evidence == ["no service found"]
+
+
+def test_run_all_agent_trials_covers_every_task_n_times(fixture_server, browser_page):
+    tasks = [
+        AgentTask(id="t1", name="T1", description="d", target_hint="h", stop_condition="s"),
+        AgentTask(id="t2", name="T2", description="d", target_hint="h", stop_condition="s"),
+    ]
+    catalogue = Catalogue(chat_services=[], agent_tasks=tasks, legislation_comparators=[])
+    client = FakeClient(tool_calls=[
+        ("finish", {"outcome": "blocked", "evidence": "e"}) for _ in range(4)  # 2 tasks x 2 trials
+    ])
+
+    traces = run_all_agent_trials(
+        lambda: browser_page, client, catalogue, n_trials=2, model="claude-sonnet-5",
+    )
+
+    assert len(traces) == 4
+    assert sorted(t.task_id for t in traces) == ["t1", "t1", "t2", "t2"]
