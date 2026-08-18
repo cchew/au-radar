@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 
+from au_radar.agent_harness import AgentTrace
 from au_radar.chat_harness import ChatTranscript
 
 CHAT_JUDGE_RUBRIC = """You are evaluating an AI-generated answer to a citizen-style question about government services.
@@ -65,4 +66,71 @@ def judge_chat_transcript(client, transcript: ChatTranscript, model: str) -> Cha
         transparency=parsed["transparency"],
         total=total,
         justification=parsed["justification"],
+    )
+
+
+AGENT_JUDGE_RUBRIC = """You are evaluating whether an automated agent could reach a government
+service, based on the recorded steps, observations, and outcome below.
+
+Score six dimensions using the evidence in the trace only. Any dimension scored 3 or above
+requires you to cite specific observed evidence from the trace; hedging language invalidates a
+high score.
+
+1) Findability (0-1) - did the agent's search/navigation reach an official government page? 0 no, 1 yes.
+2) Portal quality (0-4) - information architecture and navigability, from a maze with unlabeled
+   controls (0) to fully citizen-centric with two-click service access (4).
+3) Agent permeability (0-4) - from actively blocking (CAPTCHA/Cloudflare/geo-block) (0) to
+   agent-aware with machine-readable endpoints (4).
+4) Service access (0-4) - from service not found/information-only (0) to a full initiation
+   pathway confirmed through the authentication gateway, never past it (4).
+5) Structured access (0-4) - machine-readable service exposure, from none (0) to a full
+   service layer such as an API (4). Most services correctly score 0 here.
+6) Navigation efficiency (0-4) - based on step count, fewer steps score higher.
+
+OUTPUT. Respond with JSON only: {"findability": int, "portal_quality": int,
+"agent_permeability": int, "service_access": int, "structured_access": int,
+"navigation_efficiency": int, "justification": "2-4 sentence justification"}"""
+
+
+@dataclass
+class AgentScore:
+    findability: int
+    portal_quality: int
+    agent_permeability: int
+    service_access: int
+    structured_access: int
+    navigation_efficiency: int
+    raw: int
+    total: float
+    justification: str
+
+
+def judge_agent_trace(client, trace: AgentTrace, model: str) -> AgentScore:
+    steps_text = "\n".join(f"{s.action}({s.args}) -> {s.observation[:200]}" for s in trace.steps)
+    evidence_text = "\n".join(trace.evidence)
+    prompt = (
+        f"{AGENT_JUDGE_RUBRIC}\n\nOUTCOME: {trace.outcome}\n\nSTEPS:\n{steps_text}"
+        f"\n\nEVIDENCE:\n{evidence_text}"
+    )
+
+    response = client.messages.create(
+        model=model, max_tokens=512, messages=[{"role": "user", "content": prompt}],
+    )
+    parsed = json.loads(response.content[0].text)
+
+    raw = (
+        parsed["findability"] * 4
+        + parsed["portal_quality"]
+        + parsed["agent_permeability"]
+        + parsed["service_access"]
+        + parsed["structured_access"]
+        + parsed["navigation_efficiency"]
+    )
+    total = round((raw / 24) * 10, 1)
+
+    return AgentScore(
+        findability=parsed["findability"], portal_quality=parsed["portal_quality"],
+        agent_permeability=parsed["agent_permeability"], service_access=parsed["service_access"],
+        structured_access=parsed["structured_access"], navigation_efficiency=parsed["navigation_efficiency"],
+        raw=raw, total=total, justification=parsed["justification"],
     )

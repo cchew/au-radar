@@ -1,7 +1,8 @@
 import json
 
+from au_radar.agent_harness import AgentStep, AgentTrace
 from au_radar.chat_harness import ChatTranscript
-from au_radar.judge import judge_chat_transcript
+from au_radar.judge import judge_agent_trace, judge_chat_transcript
 
 
 class FakeMessage:
@@ -66,3 +67,39 @@ def test_judge_prompt_includes_only_the_answer_text_not_judge_own_knowledge():
     sent_prompt = client.messages.calls[0]["messages"][0]["content"]
     assert "u1" in sent_prompt
     assert "a1" in sent_prompt
+
+
+def test_judge_agent_trace_applies_radar_formula():
+    trace = AgentTrace(
+        task_id="passport_agent", model="claude-sonnet-5", outcome="reached_auth_boundary",
+        steps=[AgentStep(action="navigate", args={}, observation="landed on official portal")],
+        evidence=["reached the myGov login screen after 2 clicks"],
+    )
+    judge_reply = json.dumps({
+        "findability": 1, "portal_quality": 3, "agent_permeability": 3,
+        "service_access": 3, "structured_access": 0, "navigation_efficiency": 3,
+        "justification": "Clean two-click path to the auth boundary.",
+    })
+    client = FakeClient(judge_reply)
+
+    score = judge_agent_trace(client, trace, model="claude-sonnet-5")
+
+    # raw = (1*4) + 3 + 3 + 3 + 0 + 3 = 16 ; total = round((16/24)*10, 1) = 6.7
+    assert score.findability == 1
+    assert score.raw == 16
+    assert score.total == 6.7
+
+
+def test_judge_agent_trace_formula_zero_case():
+    trace = AgentTrace(task_id="x", model="m", outcome="inaccessible", steps=[], evidence=["no site found"])
+    judge_reply = json.dumps({
+        "findability": 0, "portal_quality": 0, "agent_permeability": 0,
+        "service_access": 0, "structured_access": 0, "navigation_efficiency": 0,
+        "justification": "No service found.",
+    })
+    client = FakeClient(judge_reply)
+
+    score = judge_agent_trace(client, trace, model="m")
+
+    assert score.raw == 0
+    assert score.total == 0.0
