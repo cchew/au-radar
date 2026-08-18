@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from au_radar.catalogue import ChatService
+from au_radar.catalogue import ChatService, Catalogue
 
 
 @dataclass
@@ -31,3 +31,15 @@ def run_chat_conversation(
     return ChatTranscript(
         service_id=service.id, trial=trial, model=model, turns=messages,
     )
+
+
+def run_all_chat_trials(
+    client, catalogue: Catalogue, n_trials: int, country: str, model: str,
+) -> list[ChatTranscript]:
+    transcripts = []
+    for service in catalogue.chat_services:
+        for trial in range(n_trials):
+            transcripts.append(
+                run_chat_conversation(client, service, country=country, model=model, trial=trial)
+            )
+    return transcripts

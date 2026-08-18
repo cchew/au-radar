@@ -1,5 +1,5 @@
-from au_radar.catalogue import ChatService
-from au_radar.chat_harness import run_chat_conversation
+from au_radar.catalogue import ChatService, Catalogue
+from au_radar.chat_harness import run_chat_conversation, run_all_chat_trials
 
 
 class FakeMessage:
@@ -54,3 +54,19 @@ def test_third_call_includes_full_prior_history():
     third_call_messages = client.messages.calls[2]["messages"]
     assert len(third_call_messages) == 5  # user,assistant,user,assistant,user
     assert third_call_messages[-1]["content"] == "turn3"
+
+
+def test_run_all_chat_trials_covers_every_service_n_times():
+    services = [
+        ChatService(id="a", name="A", domain="d", agency="ag", turns=["1", "2", "3"]),
+        ChatService(id="b", name="B", domain="d", agency="ag", turns=["1", "2", "3"]),
+    ]
+    catalogue = Catalogue(chat_services=services, agent_tasks=[], legislation_comparators=[])
+    client = FakeClient(replies=["r"] * (3 * 2 * 2))  # 3 turns x 2 trials x 2 services
+
+    transcripts = run_all_chat_trials(client, catalogue, n_trials=2, country="Australia", model="claude-sonnet-5")
+
+    assert len(transcripts) == 4  # 2 services x 2 trials
+    assert sorted((t.service_id, t.trial) for t in transcripts) == [
+        ("a", 0), ("a", 1), ("b", 0), ("b", 1),
+    ]
