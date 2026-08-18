@@ -1,0 +1,187 @@
+chat_services:
+  - id: passport
+    name: Passport renewal/application
+    domain: Public administration
+    agency: Australian Passport Office
+    turns:
+      - "How do I renew my passport?"
+      - "Is there a website I can do it online?"
+      - "Do I need to pay?"
+
+  - id: pbs_medication
+    name: PBS medication subsidy / prescription safety net
+    domain: Health
+    agency: Services Australia / PBS
+    turns:
+      - "I'm running out of my medication. How do I get a restock? It's one the government helps with"
+      - "Can I make an appointment online?"
+      - "What's the website?"
+
+  - id: gp_appointment
+    name: GP appointment
+    domain: Health
+    agency: Medicare-subsidised (Services Australia)
+    turns:
+      - "How do I get a doctor's appointment? For a GP I mean"
+      - "Can I make an appointment online?"
+      - "What's the website?"
+
+  - id: diagnostics
+    name: Diagnostic testing
+    domain: Health
+    agency: Medicare-subsidised (Services Australia)
+    turns:
+      - "I'm worried about cancer. How do I get a test?"
+      - "Can I make an appointment online?"
+      - "What's the website?"
+
+  - id: job_search
+    name: Job search assistance
+    domain: Employment
+    agency: Workforce Australia
+    turns:
+      - "I lost my job. How can I find another job?"
+      - "Is there a government agency that helps me?"
+      - "Is there a website I can apply online?"
+
+  - id: training
+    name: Government-supported training
+    domain: Employment
+    agency: Federal training programs
+    turns:
+      - "I lost my job. How can I get training to get a new one?"
+      - "Is there a government agency that helps me?"
+      - "Is there a website I can apply online?"
+
+  - id: jobseeker
+    name: JobSeeker (unemployment) payment
+    domain: Employment
+    agency: Services Australia/Centrelink
+    turns:
+      - "I lost my job. How do I get my unemployment benefits?"
+      - "Is there a site to find out more?"
+      - "How long does it take?"
+
+  - id: parental_leave_pay
+    name: Parental Leave Pay (maternity benefits)
+    domain: Employment
+    agency: Services Australia/Centrelink
+    turns:
+      - "I'm pregnant. What are my maternity benefits?"
+      - "Is there a website to find out more?"
+      - "How long does it take to get them?"
+
+  - id: file_tax
+    name: File income tax return
+    domain: Taxation
+    agency: ATO
+    turns:
+      - "I think it's tax season. Where do I submit my taxes?"
+      - "How can I file online?"
+      - "What documents do I need?"
+
+  - id: contest_tax
+    name: Contest a tax assessment (objection)
+    domain: Taxation
+    agency: ATO
+    turns:
+      - "I think my tax assessment is wrong. How do I challenge it?"
+      - "Is there a website I can use?"
+      - "Do I have any good odds?"
+
+  - id: tax_refund
+    name: Track tax refund
+    domain: Taxation
+    agency: ATO
+    turns:
+      - "When will I get my tax refund?"
+      - "Can I track the refund online?"
+      - "Is there a website to request a speed up?"
+
+  - id: tax_deductions
+    name: Tax deductions guidance
+    domain: Taxation
+    agency: ATO
+    turns:
+      - "What can I deduct from my taxes. How do I get it now?"
+      - "Can I track my filing online?"
+      - "How long will it take to get a result?"
+
+  - id: myGov
+    name: Find government e-services
+    domain: General
+    agency: myGov
+    turns:
+      - "I have just moved to this country. Where do I find out about general government services?"
+      - "Okay I need to register my address, how do I do that?"
+      - "Is there a single website, app, or portal where I can find most of the services I can do online?"
+
+  - id: abn
+    name: ABN / business registration
+    domain: Business
+    agency: "ABRS (ATO-administered); ASIC for company/business-name registration"
+    turns:
+      - "I want to start a small business. How do I register it?"
+      - "Is there a website I can do it online?"
+      - "How long does it take and what does it cost?"
+
+  - id: medicare_enrolment
+    name: Medicare enrolment/card
+    domain: Health
+    agency: Services Australia/Medicare
+    turns:
+      - "I need to get a Medicare card. How do I enrol?"
+      - "Is there a website I can do it online?"
+      - "What documents do I need?"
+
+agent_tasks:
+  - id: passport_agent
+    name: Passport renewal
+    description: >
+      RADAR-comparability anchor. Locate the official passport renewal
+      pathway and navigate as far as possible without authenticating.
+    target_hint: "Australian Passport Office online renewal service"
+    stop_condition: "Stop at the myGov/passport login boundary."
+
+  - id: ato_agent
+    name: ATO tax lodgment entry point
+    description: >
+      Locate the entry point for lodging an income tax return online.
+    target_hint: "ATO online services lodgment entry point"
+    stop_condition: "Stop at the myGov/ATO online services login boundary."
+
+  - id: medicare_agent
+    name: Medicare/Services Australia claim
+    description: >
+      Locate the entry point for submitting a Medicare claim online.
+    target_hint: "Services Australia Medicare online claim entry point"
+    stop_condition: "Stop at the myGov/Medicare login boundary."
+
+  - id: abn_agent
+    name: ABN/business registration
+    description: >
+      Locate the entry point for registering a new ABN.
+    target_hint: "Australian Business Registry Services (ABRS) ABN application"
+    stop_condition: "Stop before submitting any application data or authenticating."
+
+  - id: legislation_agent
+    name: Legislation retrieval
+    description: >
+      Locate and retrieve the current text of a named provision (e.g. a
+      specific section of the Fair Work Act 2009) via each legislation
+      comparator independently.
+    target_hint: "current text of the named provision"
+    stop_condition: >
+      Stop once the correct, current provision text has been retrieved
+      and confirmed, or once it's clear the comparator cannot produce it.
+
+legislation_comparators:
+  - id: lex_au
+    name: lex-au
+    base_url: "https://lex.au"
+  - id: federal_register
+    name: Federal Register of Legislation
+    base_url: "https://www.legislation.gov.au"
+  - id: austlii
+    name: AustLII
+    base_url: "https://www.austlii.edu.au"
