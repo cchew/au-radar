@@ -134,6 +134,10 @@ chat_services:
       - "Is there a website I can do it online?"
       - "What documents do I need?"
 
+# Legislation agent tasks are NOT stored here as a static entry: they are
+# generated per-comparator at runtime via legislation.expand_legislation_tasks
+# (three tasks, one per legislation_comparator below), not as a single blended
+# task. See legislation.py and scorecard.build_legislation_scorecard.
 agent_tasks:
   - id: passport_agent
     name: Passport renewal
@@ -142,6 +146,7 @@ agent_tasks:
       pathway and navigate as far as possible without authenticating.
     target_hint: "Australian Passport Office online renewal service"
     stop_condition: "Stop at the myGov/passport login boundary."
+    chat_service_id: passport
 
   - id: ato_agent
     name: ATO tax lodgment entry point
@@ -149,6 +154,7 @@ agent_tasks:
       Locate the entry point for lodging an income tax return online.
     target_hint: "ATO online services lodgment entry point"
     stop_condition: "Stop at the myGov/ATO online services login boundary."
+    chat_service_id: file_tax
 
   - id: medicare_agent
     name: Medicare/Services Australia claim
@@ -156,6 +162,7 @@ agent_tasks:
       Locate the entry point for submitting a Medicare claim online.
     target_hint: "Services Australia Medicare online claim entry point"
     stop_condition: "Stop at the myGov/Medicare login boundary."
+    chat_service_id: medicare_enrolment
 
   - id: abn_agent
     name: ABN/business registration
@@ -163,17 +170,7 @@ agent_tasks:
       Locate the entry point for registering a new ABN.
     target_hint: "Australian Business Registry Services (ABRS) ABN application"
     stop_condition: "Stop before submitting any application data or authenticating."
-
-  - id: legislation_agent
-    name: Legislation retrieval
-    description: >
-      Locate and retrieve the current text of a named provision (e.g. a
-      specific section of the Fair Work Act 2009) via each legislation
-      comparator independently.
-    target_hint: "current text of the named provision"
-    stop_condition: >
-      Stop once the correct, current provision text has been retrieved
-      and confirmed, or once it's clear the comparator cannot produce it.
+    chat_service_id: abn
 
 legislation_comparators:
   - id: lex_au

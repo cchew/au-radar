@@ -1,7 +1,15 @@
+from au_radar.aggregate_agent import DISAGREEMENT_THRESHOLD, TaskAgentResult
+from au_radar.aggregate_chat import ServiceChatResult
 from au_radar.scorecard import LegislationScorecard, Scorecard
 
 
-def write_findings_summary(scorecard: Scorecard, legislation: LegislationScorecard, output_path: str) -> None:
+def write_findings_summary(
+    scorecard: Scorecard,
+    legislation: LegislationScorecard,
+    chat_results: list[ServiceChatResult],
+    agent_results: list[TaskAgentResult],
+    output_path: str,
+) -> None:
     lines = [
         "# AU Sovereign Legibility — Findings Summary",
         "",
@@ -26,6 +34,50 @@ def write_findings_summary(scorecard: Scorecard, legislation: LegislationScoreca
         "Legislation-legibility scores are exploratory: unlike the general-services basket, "
         "there is no published RADAR result for legislation lookup, so no external validation "
         "anchor exists for this comparison.",
+        "",
+        "## Reliability across repeated trials",
+        "",
+        f"Every chat and agent prompt runs 2-3 times (spec §3.2); results below are reported as "
+        f"mean ± spread per service/task, not a single point score. A task's spread is flagged as "
+        f"disagreement when it exceeds `DISAGREEMENT_THRESHOLD = {DISAGREEMENT_THRESHOLD}` "
+        "(see `aggregate_agent.py`).",
+        "",
+        "### Chat services (mean ± spread)",
+        "",
+        "| Service | Mean | Spread |",
+        "|---|---|---|",
+    ]
+    for chat_result in chat_results:
+        lines.append(f"| {chat_result.service_id} | {chat_result.mean_total} | ± {chat_result.spread} |")
+
+    lines += [
+        "",
+        "### Agent tasks (mean ± spread)",
+        "",
+        "| Task | Mean | Spread |",
+        "|---|---|---|",
+    ]
+    for agent_result in agent_results:
+        lines.append(f"| {agent_result.task_id} | {agent_result.mean_total} | ± {agent_result.spread} |")
+
+    lines += [
+        "",
+        "### Runs that disagreed",
+        "",
+    ]
+    disagreements = [r for r in agent_results if r.disagreement_flagged]
+    if disagreements:
+        lines.append(
+            f"Repeated agent trials disagreed by more than {DISAGREEMENT_THRESHOLD} points "
+            "(inconsistent navigation, not averaged away) on:"
+        )
+        lines.append("")
+        for r in disagreements:
+            lines.append(f"- `{r.task_id}` — spread {r.spread} across {r.trial_count} trials")
+    else:
+        lines.append("No disagreement flagged across repeated trials.")
+
+    lines += [
         "",
         "## Limitations",
         "",

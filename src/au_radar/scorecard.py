@@ -13,8 +13,11 @@ class Scorecard:
     radar_anchor_rank: int = RADAR_ANCHOR_RANK
 
 
-def build_scorecard(chat_results, agent_results, legislation_task_ids: set[str]) -> Scorecard:
-    chat_mean = round(sum(r.mean_total for r in chat_results) / len(chat_results), 2)
+def build_scorecard(
+    chat_results, agent_results, legislation_task_ids: set[str], legislation_service_ids: set[str],
+) -> Scorecard:
+    non_legislation_chat = [r for r in chat_results if r.service_id not in legislation_service_ids]
+    chat_mean = round(sum(r.mean_total for r in non_legislation_chat) / len(non_legislation_chat), 2)
 
     non_legislation_agent = [r for r in agent_results if r.task_id not in legislation_task_ids]
     agent_mean = round(
@@ -42,12 +45,17 @@ class LegislationScorecard:
 
 def build_legislation_scorecard(legislation_chat_results, legislation_agent_results) -> LegislationScorecard:
     agent_by_id = {r.task_id: r.mean_total for r in legislation_agent_results}
-    rows = [
-        LegislationRow(
-            comparator_id=chat_result.service_id,
-            chat_score=chat_result.mean_total,
-            agent_score=agent_by_id.get(chat_result.service_id, 0.0),
+    rows = []
+    for chat_result in legislation_chat_results:
+        if chat_result.service_id not in agent_by_id:
+            raise ValueError(
+                f"no agent result for legislation comparator {chat_result.service_id}"
+            )
+        rows.append(
+            LegislationRow(
+                comparator_id=chat_result.service_id,
+                chat_score=chat_result.mean_total,
+                agent_score=agent_by_id[chat_result.service_id],
+            )
         )
-        for chat_result in legislation_chat_results
-    ]
     return LegislationScorecard(rows=rows)

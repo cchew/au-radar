@@ -20,6 +20,7 @@ class AgentTask:
     description: str
     target_hint: str
     stop_condition: str
+    chat_service_id: str = ""
 
 
 @dataclass
@@ -50,6 +51,7 @@ def load_catalogue(path: str) -> Catalogue:
         AgentTask(
             id=t["id"], name=t["name"], description=t["description"],
             target_hint=t["target_hint"], stop_condition=t["stop_condition"],
+            chat_service_id=t.get("chat_service_id", ""),
         )
         for t in raw["agent_tasks"]
     ]

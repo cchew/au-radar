@@ -8,6 +8,7 @@ def _score(total, raw=16):
     return AgentScore(
         findability=1, portal_quality=3, agent_permeability=3, service_access=3,
         structured_access=0, navigation_efficiency=3, raw=raw, total=total, justification="j",
+        model="claude-sonnet-5",
     )
 
 
@@ -37,3 +38,4 @@ def test_write_agent_results_produces_valid_json(tmp_path):
 
     data = json.loads(out_path.read_text())
     assert data[0]["task_id"] == "passport_agent"
+    assert data[0]["trial_scores"][0]["model"] == "claude-sonnet-5"  # model string survives to disk

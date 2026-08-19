@@ -8,7 +8,9 @@ CATALOGUE_PATH = Path(__file__).parent.parent / "src" / "au_radar" / "data" / "c
 def test_catalogue_counts_match_spec():
     catalogue = load_catalogue(str(CATALOGUE_PATH))
     assert len(catalogue.chat_services) == 15
-    assert len(catalogue.agent_tasks) == 5
+    # 4 non-legislation agent tasks; legislation tasks are generated separately
+    # per comparator via legislation.expand_legislation_tasks, not stored here.
+    assert len(catalogue.agent_tasks) == 4
     assert len(catalogue.legislation_comparators) == 3
 
 

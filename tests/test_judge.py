@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from au_radar.agent_harness import AgentStep, AgentTrace
 from au_radar.chat_harness import ChatTranscript
 from au_radar.judge import judge_agent_trace, judge_chat_transcript
@@ -47,6 +49,7 @@ def test_judge_chat_transcript_parses_scores():
     assert score.transparency == 1
     assert score.total == 8.0
     assert "official domain" in score.justification
+    assert score.model == "claude-sonnet-5"  # recorded from the argument, not the judge's own reply
 
 
 def test_judge_prompt_includes_only_the_answer_text_not_judge_own_knowledge():
@@ -69,6 +72,38 @@ def test_judge_prompt_includes_only_the_answer_text_not_judge_own_knowledge():
     assert "a1" in sent_prompt
 
 
+def test_judge_chat_transcript_rejects_out_of_range_score():
+    transcript = ChatTranscript(
+        service_id="x", trial=0, model="m",
+        turns=[{"role": "user", "content": "u1"}, {"role": "assistant", "content": "a1"}],
+    )
+    judge_reply = json.dumps({
+        "verifiability": 5, "specificity": 2, "depth": 2, "transparency": 1,  # verifiability out of 0-3 range
+        "justification": "j",
+    })
+    client = FakeClient(judge_reply)
+
+    with pytest.raises(ValueError, match="verifiability"):
+        judge_chat_transcript(client, transcript, model="m")
+
+
+def test_judge_chat_transcript_parses_markdown_fenced_json():
+    transcript = ChatTranscript(
+        service_id="x", trial=0, model="m",
+        turns=[{"role": "user", "content": "u1"}, {"role": "assistant", "content": "a1"}],
+    )
+    fenced_reply = "```json\n" + json.dumps({
+        "verifiability": 3, "specificity": 2, "depth": 2, "transparency": 1,
+        "justification": "fenced but valid",
+    }) + "\n```"
+    client = FakeClient(fenced_reply)
+
+    score = judge_chat_transcript(client, transcript, model="m")
+
+    assert score.total == 8.0
+    assert score.justification == "fenced but valid"
+
+
 def test_judge_agent_trace_applies_radar_formula():
     trace = AgentTrace(
         task_id="passport_agent", model="claude-sonnet-5", outcome="reached_auth_boundary",
@@ -77,29 +112,60 @@ def test_judge_agent_trace_applies_radar_formula():
     )
     judge_reply = json.dumps({
         "findability": 1, "portal_quality": 3, "agent_permeability": 3,
-        "service_access": 3, "structured_access": 0, "navigation_efficiency": 3,
+        "service_access": 3, "structured_access": 0,
         "justification": "Clean two-click path to the auth boundary.",
     })
     client = FakeClient(judge_reply)
 
     score = judge_agent_trace(client, trace, model="claude-sonnet-5")
 
-    # raw = (1*4) + 3 + 3 + 3 + 0 + 3 = 16 ; total = round((16/24)*10, 1) = 6.7
+    # navigation_efficiency is computed from len(trace.steps) == 1 -> 4 (<=3 band)
+    # raw = (1*4) + 3 + 3 + 3 + 0 + 4 = 17 ; total = round((17/24)*10, 1) = 7.1
     assert score.findability == 1
-    assert score.raw == 16
-    assert score.total == 6.7
+    assert score.navigation_efficiency == 4
+    assert score.raw == 17
+    assert score.total == 7.1
+    assert score.model == "claude-sonnet-5"
 
 
 def test_judge_agent_trace_formula_zero_case():
     trace = AgentTrace(task_id="x", model="m", outcome="inaccessible", steps=[], evidence=["no site found"])
     judge_reply = json.dumps({
         "findability": 0, "portal_quality": 0, "agent_permeability": 0,
-        "service_access": 0, "structured_access": 0, "navigation_efficiency": 0,
+        "service_access": 0, "structured_access": 0,
         "justification": "No service found.",
     })
     client = FakeClient(judge_reply)
 
     score = judge_agent_trace(client, trace, model="m")
 
-    assert score.raw == 0
-    assert score.total == 0.0
+    # navigation_efficiency is computed from len(trace.steps) == 0 -> 4 (<=3 band)
+    # raw = 0 + 0 + 0 + 0 + 0 + 4 = 4 ; total = round((4/24)*10, 1) = 1.7
+    assert score.navigation_efficiency == 4
+    assert score.raw == 4
+    assert score.total == 1.7
+
+
+def test_judge_agent_trace_rejects_out_of_range_score():
+    trace = AgentTrace(task_id="x", model="m", outcome="inaccessible", steps=[], evidence=[])
+    judge_reply = json.dumps({
+        "findability": 1, "portal_quality": 9, "agent_permeability": 0,  # portal_quality out of 0-4 range
+        "service_access": 0, "structured_access": 0, "justification": "j",
+    })
+    client = FakeClient(judge_reply)
+
+    with pytest.raises(ValueError, match="portal_quality"):
+        judge_agent_trace(client, trace, model="m")
+
+
+def test_judge_agent_trace_parses_markdown_fenced_json():
+    trace = AgentTrace(task_id="x", model="m", outcome="inaccessible", steps=[], evidence=[])
+    fenced_reply = "```json\n" + json.dumps({
+        "findability": 1, "portal_quality": 2, "agent_permeability": 2,
+        "service_access": 2, "structured_access": 0, "justification": "fenced but valid",
+    }) + "\n```"
+    client = FakeClient(fenced_reply)
+
+    score = judge_agent_trace(client, trace, model="m")
+
+    assert score.justification == "fenced but valid"

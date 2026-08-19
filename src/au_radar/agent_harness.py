@@ -84,6 +84,8 @@ def run_agent_task(page, client, task: AgentTask, model: str, max_steps: int = 1
         "Use the tools provided. Call `finish` when done or blocked."
     )
 
+    messages: list[dict] = [{"role": "user", "content": "Begin the task."}]
+
     for _ in range(max_steps):
         # Checked BEFORE requesting the next action, not after executing one:
         # this is what makes the guardrail apply uniformly to every action
@@ -96,8 +98,10 @@ def run_agent_task(page, client, task: AgentTask, model: str, max_steps: int = 1
 
         response = client.messages.create(
             model=model, max_tokens=1024, system=system_prompt,
-            tools=TOOLS, messages=[{"role": "user", "content": "Continue the task."}],
+            tools=TOOLS, messages=list(messages),
         )
+        messages.append({"role": "assistant", "content": response.content})
+
         tool_block = response.content[0]
         action, args = tool_block.name, tool_block.input
 
@@ -117,6 +121,10 @@ def run_agent_task(page, client, task: AgentTask, model: str, max_steps: int = 1
 
         observation = page.inner_text("body")
         trace.steps.append(AgentStep(action=action, args=args, observation=observation))
+        messages.append({
+            "role": "user",
+            "content": [{"type": "tool_result", "tool_use_id": tool_block.id, "content": observation}],
+        })
 
     return trace
 

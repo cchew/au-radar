@@ -65,6 +65,36 @@ def test_agent_trace_records_finish_outcome_when_model_calls_finish(fixture_serv
     assert trace.evidence == ["no service found"]
 
 
+def test_second_call_messages_include_first_actions_tool_result(fixture_server, browser_page):
+    # Regression test for Critical 3: the harness must accumulate conversation
+    # history and feed the tool_result for each action back into the next
+    # create() call, not resend a fixed "Continue the task." string every turn.
+    task = AgentTask(
+        id="t", name="x", description="x", target_hint="x", stop_condition="x",
+    )
+    client = FakeClient(tool_calls=[
+        ("navigate", {"url": fixture_server + "/index.html"}),
+        ("finish", {"outcome": "blocked", "evidence": "e"}),
+    ])
+
+    trace = run_agent_task(browser_page, client, task, model="claude-sonnet-5", max_steps=10)
+
+    assert len(client.messages.calls) == 2
+    first_observation = trace.steps[0].observation
+    second_call_messages = client.messages.calls[1]["messages"]
+
+    tool_result_blocks = [
+        block
+        for m in second_call_messages
+        if m["role"] == "user" and isinstance(m["content"], list)
+        for block in m["content"]
+        if block.get("type") == "tool_result"
+    ]
+    assert len(tool_result_blocks) == 1
+    assert tool_result_blocks[0]["tool_use_id"] == "t1"
+    assert tool_result_blocks[0]["content"] == first_observation
+
+
 def test_run_all_agent_trials_covers_every_task_n_times(fixture_server, browser_page):
     tasks = [
         AgentTask(id="t1", name="T1", description="d", target_hint="h", stop_condition="s"),
