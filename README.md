@@ -65,4 +65,4 @@ see its module docstring before running it.
 
 ## License
 
-Apache 2.0 — see [`LICENSE`](LICENSE).
+MIT — see [`LICENSE`](LICENSE).
