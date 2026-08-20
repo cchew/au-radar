@@ -9,7 +9,7 @@ from au_radar.judge import judge_agent_trace, judge_chat_transcript
 
 class FakeMessage:
     def __init__(self, text):
-        self.content = [type("Block", (), {"text": text})()]
+        self.content = [type("Block", (), {"type": "text", "text": text})()]
 
 
 class FakeMessagesAPI:
@@ -102,6 +102,34 @@ def test_judge_chat_transcript_parses_markdown_fenced_json():
 
     assert score.total == 8.0
     assert score.justification == "fenced but valid"
+
+
+def test_judge_chat_transcript_parses_json_with_leading_prose():
+    transcript = ChatTranscript(
+        service_id="x", trial=0, model="m",
+        turns=[{"role": "user", "content": "u1"}, {"role": "assistant", "content": "a1"}],
+    )
+    prefaced_reply = "Looking at this conversation, here is my evaluation:\n\n" + json.dumps({
+        "verifiability": 3, "specificity": 2, "depth": 2, "transparency": 1,
+        "justification": "prefaced but valid",
+    })
+    client = FakeClient(prefaced_reply)
+
+    score = judge_chat_transcript(client, transcript, model="m")
+
+    assert score.total == 8.0
+    assert score.justification == "prefaced but valid"
+
+
+def test_judge_chat_transcript_raises_clear_error_on_unparseable_reply():
+    transcript = ChatTranscript(
+        service_id="x", trial=0, model="m",
+        turns=[{"role": "user", "content": "u1"}, {"role": "assistant", "content": "a1"}],
+    )
+    client = FakeClient("Sorry, I can't evaluate this conversation.")
+
+    with pytest.raises(ValueError):
+        judge_chat_transcript(client, transcript, model="m")
 
 
 def test_judge_agent_trace_applies_radar_formula():

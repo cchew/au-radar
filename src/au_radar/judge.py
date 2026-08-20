@@ -2,16 +2,19 @@ import json
 from dataclasses import dataclass
 
 from au_radar.agent_harness import AgentTrace
+from au_radar.anthropic_utils import extract_text
 from au_radar.chat_harness import ChatTranscript
 
 
 def _parse_judge_json(text: str, int_fields: list[str], ranges: dict[str, tuple[int, int]]) -> dict:
     """Parse a judge model's JSON reply defensively: tolerate a markdown code
     fence around the JSON (some models wrap replies in ```json ... ``` even
-    when told not to), then assert every named field is present, an int, and
-    within its documented inclusive range. Raises ValueError naming the
-    offending field/value on any violation, rather than silently corrupting
-    downstream means or crashing with a raw KeyError/TypeError mid-collection.
+    when told not to) and/or leading prose before the object (e.g. "Looking
+    at this conversation..."), then assert every named field is present, an
+    int, and within its documented inclusive range. Raises ValueError naming
+    the offending field/value on any violation, rather than silently
+    corrupting downstream means or crashing with a raw KeyError/TypeError
+    mid-collection.
     """
     stripped = text.strip()
     if stripped.startswith("```"):
@@ -22,7 +25,21 @@ def _parse_judge_json(text: str, int_fields: list[str], ranges: dict[str, tuple[
             lines = lines[:-1]
         stripped = "\n".join(lines)
 
-    parsed = json.loads(stripped)
+    try:
+        parsed = json.loads(stripped)
+    except json.JSONDecodeError:
+        start, end = stripped.find("{"), stripped.rfind("}")
+        if start == -1 or end == -1 or end < start:
+            raise ValueError(
+                f"judge reply contained no JSON object: {text[:300]!r}"
+            )
+        try:
+            parsed = json.loads(stripped[start : end + 1])
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"judge reply was not valid JSON even after stripping surrounding text: "
+                f"{text[:300]!r}"
+            ) from exc
 
     for field_name in int_fields:
         if field_name not in parsed:
@@ -86,11 +103,11 @@ def judge_chat_transcript(client, transcript: ChatTranscript, model: str) -> Cha
 
     response = client.messages.create(
         model=model,
-        max_tokens=512,
+        max_tokens=2048,
         messages=[{"role": "user", "content": prompt}],
     )
     parsed = _parse_judge_json(
-        response.content[0].text,
+        extract_text(response),
         int_fields=["verifiability", "specificity", "depth", "transparency"],
         ranges={
             "verifiability": (0, 3), "specificity": (0, 3),
@@ -177,10 +194,10 @@ def judge_agent_trace(client, trace: AgentTrace, model: str) -> AgentScore:
     )
 
     response = client.messages.create(
-        model=model, max_tokens=512, messages=[{"role": "user", "content": prompt}],
+        model=model, max_tokens=2048, messages=[{"role": "user", "content": prompt}],
     )
     parsed = _parse_judge_json(
-        response.content[0].text,
+        extract_text(response),
         int_fields=["findability", "portal_quality", "agent_permeability", "service_access", "structured_access"],
         ranges={
             "findability": (0, 1), "portal_quality": (0, 4), "agent_permeability": (0, 4),

@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 
+from au_radar.anthropic_utils import extract_text
 from au_radar.catalogue import ChatService, Catalogue
 
 
@@ -25,7 +26,7 @@ def run_chat_conversation(
             system=system_prompt,
             messages=list(messages),
         )
-        assistant_text = response.content[0].text
+        assistant_text = extract_text(response)
         messages.append({"role": "assistant", "content": assistant_text})
 
     return ChatTranscript(

@@ -9,6 +9,7 @@ harnesses work end-to-end with real responses on a single service/task.
 import os
 
 import anthropic
+from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
 from au_radar.catalogue import load_catalogue
@@ -19,6 +20,7 @@ MODEL = "claude-sonnet-5"
 
 
 def main():
+    load_dotenv()
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     catalogue = load_catalogue("src/au_radar/data/catalogue.yaml")
     service = catalogue.chat_services[0]

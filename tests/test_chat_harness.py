@@ -4,7 +4,7 @@ from au_radar.chat_harness import run_chat_conversation, run_all_chat_trials
 
 class FakeMessage:
     def __init__(self, text):
-        self.content = [type("Block", (), {"text": text})()]
+        self.content = [type("Block", (), {"type": "text", "text": text})()]
 
 
 class FakeMessagesAPI:
