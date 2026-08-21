@@ -1,38 +1,68 @@
 # Future work / known gaps
 
 Not blocking the current plan (docs/superpowers/plans/2026-08-16-au-radar-legibility.md
-in the executive-assistant repo). Everything here is deferred because this plan only
-builds and tests the harness against a local fixture server — no automated task in
-this plan ever touches a real government site. Address before the separate, manual,
+in the executive-assistant repo). Address before the separate, manual,
 human-approved live data-collection run.
 
-## Hard-stop guardrail coverage (from Task 7 review, 2026-08-19)
+## Fixed (2026-08-21)
 
-`_page_has_login_field()` in `src/au_radar/agent_harness.py` only checks
-`input[type="password"]` in the page's main frame, synchronously, with no
-wait/settle logic. Two real gaps before this harness ever drives a real browser
-against a real government portal:
+Both gaps below were closed before the first live run, verified against the
+real Anthropic API (not just fixture-based mocks) and against new fixture
+tests (`iframe_login.html`, `async_login.html`, `test_agent_extracts_tool_use_past_a_leading_thinking_block`):
 
-1. **Cross-origin/iframe SSO widgets.** AU government login flows commonly use
-   an identity-provider redirect or embedded widget (myGovID-style) that may
-   render its password field inside an `<iframe>` the current check won't see.
-2. **Async-rendered login fields.** A login field injected by client-side JS
-   after `page.goto()`/`.click()` returns, but before the harness's next check,
-   falls in a narrow but real timing gap.
+- **`content[0]` assumed the first content block.** True for chat, judge, and
+  agent responses — Claude Sonnet 5 reliably emits a leading `ThinkingBlock`
+  before the real content. Fixed via `au_radar/anthropic_utils.py`'s
+  `extract_text()` / `extract_tool_use()`, which scan for the block by type
+  instead of assuming position.
+- **Hard-stop guardrail only checked the main frame, synchronously.**
+  `_page_has_login_field()` now walks every frame (catches iframe-embedded
+  SSO widgets), and `run_agent_task()` waits `LOGIN_FIELD_SETTLE_MS` (500ms)
+  after each action before the next guardrail check (catches async-injected
+  login fields). Frame checks that raise (a frame detaching mid-check) are
+  treated as inconclusive for that frame, never as license to proceed.
 
-Neither is a bug in what Task 7 built — it matches the plan/spec exactly and
-passes its fixture tests. But the constraint's own bar ("terminate the instant
-a password field is detected") has only been proven for the same-frame,
-synchronously-rendered case. Harden the detector (frame-walking, a short
-explicit settle/wait, and/or a periodic re-check independent of action
-completion) before pointing this at anything but the local fixture server.
+## Fixed after the pilot runs, before the full run (2026-08-21)
 
-## `content[0]` assumes a leading tool_use block
+- **Click/type_text targets were paraphrased, not quoted.** The model
+  described elements in its own words instead of copying real page text,
+  so `page.get_by_text(...)` never matched. Fixed via explicit verbatim-quote
+  instructions in the `click`/`type_text` tool descriptions and system
+  prompt.
+- **A failed action crashed the whole trial.** One bad click (e.g. a
+  hover-only nav item, an invisible element) raised an unhandled exception
+  and discarded every prior real API call in that trial. Fixed: action
+  failures are now caught and fed back to the model as an observation
+  ("Action failed: ..." plus current page content), so it can adapt instead
+  of the trial dying.
 
-`run_agent_task()` reads `response.content[0]` and assumes it's always a
-`tool_use` block. A real Claude response can legitimately emit a text block
-before the tool_use block (e.g. the model reasoning aloud). That will raise
-`AttributeError` rather than execute anything unsafe — it fails loud, not
-silently — but it will break the harness against the real Anthropic API even
-though the hand-rolled fake test client never triggers it. Fix: scan
-`response.content` for the first `tool_use` block instead of indexing `[0]`.
+## Fixed after the full live run (2026-08-21)
+
+Both found live, mid-collection, on the actual full run (18 chat services +
+4 general + 3 legislation agent tasks, 2 trials each) — auto-recovered by
+the script's retry wrapper both times, so no result from that run is
+invalid, but both wasted real retries and would eventually exhaust the
+retry budget on a large enough run:
+
+- **Orphaned `tool_use` blocks.** When Claude emitted more than one
+  `tool_use` block in a single turn, the harness only executed and replied
+  to the first, leaving the second's id without a `tool_result` -- the API
+  rejects the *next* call outright when that happens
+  (`invalid_request_error: tool_use ids were found without tool_result
+  blocks`). Fixed: every extra `tool_use` id in a turn now gets an explicit
+  "not executed" `tool_result`, not just the one that was actually acted on.
+- **`max_tokens=1024` was too tight for the agent loop's own action-selection
+  calls**, same root cause as the judge-call fix from the pilot stage --
+  thinking tokens can exhaust the budget before a `tool_use` block is
+  emitted at all. Raised to 2048, matching `judge.py`.
+
+## Still open before trusting this at larger scale
+
+- The settle wait (500ms) and frame-walk are a real hardening, not a proof.
+  A sufficiently slow or unusually-structured real SSO flow could still
+  exceed the settle window; nothing here replaces watching runs closely.
+- No `hover` tool exists, so menu items that only render on hover (not
+  click) are unreachable by design -- this showed up as a real, legitimate
+  low `passport_agent` score (1.7) rather than a harness bug, but it means
+  that score reflects a harness capability gap as much as a site problem.
+  Worth naming explicitly wherever `passport_agent`'s score is reported.

@@ -16,3 +16,19 @@ def extract_text(response) -> str:
         f"response contained no text block (stop_reason={stop_reason!r}); "
         "if stop_reason is 'max_tokens', raise max_tokens for this call"
     )
+
+
+def extract_tool_use(response):
+    """Return the first tool_use block from an Anthropic response.
+
+    Claude may emit a leading ThinkingBlock or TextBlock (reasoning aloud)
+    before the tool_use block, so it is never reliably at content[0].
+    """
+    for block in response.content:
+        if block.type == "tool_use":
+            return block
+    stop_reason = getattr(response, "stop_reason", "unknown")
+    raise ValueError(
+        f"response contained no tool_use block (stop_reason={stop_reason!r}); "
+        "if stop_reason is 'max_tokens', raise max_tokens for this call"
+    )

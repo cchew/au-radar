@@ -4,9 +4,10 @@ A RADAR-consistent AU sovereign-legibility benchmark: how well can an LLM *descr
 Australian federal government services versus actually *reach* them, and how does that
 compare to a similar test applied to legislation lookup?
 
-> **Status: no live data has been collected yet.** This repo currently contains only
-> the benchmark harness and its test suite, exercised against local fixtures and fakes.
-> See [`FUTURE.md`](FUTURE.md) for what's needed before a real collection run.
+> **Status: first full live run complete (2026-08-21).** Overall AU score 5.32/10
+> (chat 6.1, agent 4.55) vs RADAR's published Australia score of 7.24. Results,
+> charts, and the findings summary are in [`results/`](results/). Known harness
+> gaps found during that run are logged in [`FUTURE.md`](FUTURE.md).
 
 ## What this measures
 

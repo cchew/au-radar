@@ -50,6 +50,55 @@ def test_agent_hard_stops_before_login_field_regardless_of_requested_action(fixt
     assert browser_page.url.endswith("login.html")
 
 
+def test_agent_hard_stops_on_password_field_inside_iframe(fixture_server, browser_page):
+    task = AgentTask(
+        id="t", name="Renew document", description="Renew a document",
+        target_hint="document renewal", stop_condition="stop at login",
+    )
+    client = FakeClient(tool_calls=[
+        ("navigate", {"url": fixture_server + "/iframe_login.html"}),
+        ("type_text", {"description": "Username", "text": "should-never-run"}),
+    ])
+
+    trace = run_agent_task(browser_page, client, task, model="claude-sonnet-5", max_steps=10)
+
+    assert trace.outcome == "reached_auth_boundary"
+    assert "type_text" not in [s.action for s in trace.steps]
+
+
+def test_agent_hard_stops_on_async_rendered_password_field(fixture_server, browser_page):
+    task = AgentTask(
+        id="t", name="Renew document", description="Renew a document",
+        target_hint="document renewal", stop_condition="stop at login",
+    )
+    client = FakeClient(tool_calls=[
+        ("navigate", {"url": fixture_server + "/async_login.html"}),
+        ("type_text", {"description": "Username", "text": "should-never-run"}),
+    ])
+
+    trace = run_agent_task(browser_page, client, task, model="claude-sonnet-5", max_steps=10)
+
+    assert trace.outcome == "reached_auth_boundary"
+    assert "type_text" not in [s.action for s in trace.steps]
+
+
+def test_agent_recovers_from_a_failed_click_instead_of_crashing(fixture_server, browser_page):
+    task = AgentTask(id="t", name="x", description="x", target_hint="x", stop_condition="x")
+    browser_page.set_default_timeout(500)  # keep the doomed click's timeout fast for this test
+    client = FakeClient(tool_calls=[
+        ("navigate", {"url": fixture_server + "/index.html"}),
+        ("click", {"description": "text that does not exist on this page"}),
+        ("finish", {"outcome": "blocked", "evidence": "could not find the link"}),
+    ])
+
+    trace = run_agent_task(browser_page, client, task, model="claude-sonnet-5", max_steps=10)
+
+    assert trace.outcome == "blocked"
+    failed_step = trace.steps[1]
+    assert failed_step.action == "click"
+    assert "Action failed" in failed_step.observation
+
+
 def test_agent_trace_records_finish_outcome_when_model_calls_finish(fixture_server, browser_page):
     task = AgentTask(
         id="t", name="x", description="x", target_hint="x", stop_condition="x",
@@ -93,6 +142,106 @@ def test_second_call_messages_include_first_actions_tool_result(fixture_server, 
     assert len(tool_result_blocks) == 1
     assert tool_result_blocks[0]["tool_use_id"] == "t1"
     assert tool_result_blocks[0]["content"] == first_observation
+
+
+class FakeMessageWithLeadingThinkingBlock:
+    """Simulates a real Claude response: a ThinkingBlock (no .name/.input)
+    ahead of the actual tool_use block. Regression test for the content[0]
+    bug documented in FUTURE.md."""
+
+    def __init__(self, tool_name, tool_input):
+        thinking_block = type("Block", (), {"type": "thinking", "thinking": "reasoning..."})()
+        tool_block = type(
+            "Block", (), {"type": "tool_use", "name": tool_name, "input": tool_input, "id": "t1"}
+        )()
+        self.content = [thinking_block, tool_block]
+
+    stop_reason = "tool_use"
+
+
+class FakeMessagesAPIWithThinking:
+    def __init__(self, tool_calls):
+        self.tool_calls = list(tool_calls)
+        self.calls = []
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        name, args = self.tool_calls.pop(0)
+        return FakeMessageWithLeadingThinkingBlock(name, args)
+
+
+class FakeClientWithThinking:
+    def __init__(self, tool_calls):
+        self.messages = FakeMessagesAPIWithThinking(tool_calls)
+
+
+def test_agent_extracts_tool_use_past_a_leading_thinking_block(fixture_server, browser_page):
+    task = AgentTask(id="t", name="x", description="x", target_hint="x", stop_condition="x")
+    client = FakeClientWithThinking(tool_calls=[
+        ("finish", {"outcome": "blocked", "evidence": "no service found"}),
+    ])
+
+    trace = run_agent_task(browser_page, client, task, model="claude-sonnet-5", max_steps=10)
+
+    assert trace.outcome == "blocked"
+
+
+class FakeMessageWithMultipleToolUse:
+    """Simulates Claude emitting more than one tool_use block in a single
+    turn. Regression test: the API rejects the *next* create() call if any
+    tool_use id from the previous turn lacks a matching tool_result."""
+
+    def __init__(self, calls):
+        self.content = [
+            type("Block", (), {"type": "tool_use", "name": name, "input": args, "id": f"multi-{i}"})()
+            for i, (name, args) in enumerate(calls)
+        ]
+
+    stop_reason = "tool_use"
+
+
+class FakeMessagesAPIWithMultiToolUse:
+    def __init__(self, turns):
+        self.turns = list(turns)
+        self.calls = []
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        turn = self.turns.pop(0)
+        return FakeMessageWithMultipleToolUse(turn)
+
+
+class FakeClientWithMultiToolUse:
+    def __init__(self, turns):
+        self.messages = FakeMessagesAPIWithMultiToolUse(turns)
+
+
+def test_agent_resolves_every_tool_use_id_when_model_emits_more_than_one(fixture_server, browser_page):
+    task = AgentTask(id="t", name="x", description="x", target_hint="x", stop_condition="x")
+    client = FakeClientWithMultiToolUse(turns=[
+        # First turn: model emits two tool_use blocks at once (only the
+        # first, "navigate", should actually execute).
+        [("navigate", {"url": fixture_server + "/index.html"}), ("read_page", {})],
+        [("finish", {"outcome": "blocked", "evidence": "e"})],
+    ])
+
+    trace = run_agent_task(browser_page, client, task, model="claude-sonnet-5", max_steps=10)
+
+    assert trace.outcome == "blocked"
+    # The second create() call must not have been rejected by the API for an
+    # orphaned tool_use id -- if it had been, this second call would never
+    # have happened / the FakeMessagesAPI would have raised IndexError on an
+    # empty `turns` list from an unexpected retry-from-scratch.
+    assert len(client.messages.calls) == 2
+    second_call_messages = client.messages.calls[1]["messages"]
+    tool_result_ids = {
+        block["tool_use_id"]
+        for m in second_call_messages
+        if m["role"] == "user" and isinstance(m["content"], list)
+        for block in m["content"]
+        if block.get("type") == "tool_result"
+    }
+    assert tool_result_ids == {"multi-0", "multi-1"}
 
 
 def test_run_all_agent_trials_covers_every_task_n_times(fixture_server, browser_page):

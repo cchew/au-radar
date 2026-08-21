@@ -1,0 +1,470 @@
+[
+  {
+    "service_id": "passport",
+    "mean_total": 5.0,
+    "spread": 2.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 1,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 1,
+        "total": 6.0,
+        "justification": "The assistant repeatedly points to the correct official domain (passports.gov.au), which is relevant and legitimate, but it never cites a specific page, form, or fee schedule, and offers no clickable links or direct excerpts to verify claims like Form B1 naming, guarantor rules, or fee tiers. The steps and eligibility criteria are described in reasonably actionable general terms (go to site, look for 'Renew a passport', apply online, mail documents) but lack exact URLs or concrete requirements. Coverage is fairly broad (eligibility, documents, online process, fees, processing times) without excessive padding. The assistant appropriately flags uncertainty about fees and eligibility changing, avoiding invented specifics, which supports transparency but the overall reliance on unverified generic claims limits verifiability and specificity.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 0,
+        "specificity": 1,
+        "depth": 2,
+        "transparency": 1,
+        "total": 4.0,
+        "justification": "No links or citations are provided anywhere in the conversation\u2014only a repeated mention of 'passports.gov.au' without any actual hyperlink, page reference, or quoted content, so none of the claims (fee categories, process steps, online capabilities) are verifiable against an official source. The answer does give a general next step (visit the website) but no exact URL, form link, or fee figures, limiting actionability. Depth is reasonable, covering fee categories, payment timing, and caveats, and the assistant is appropriately transparent about uncertainty and changing fees, but the total lack of sourcing is a major weakness given the rubric's emphasis on verifiability.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "pbs_medication",
+    "mean_total": 5.5,
+    "spread": 1.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 1,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 1,
+        "total": 6.0,
+        "justification": "The answer provides real, working commercial website links (HotDoc, HealthEngine, InstantScripts, Qoctor) but cites no official government sources (e.g., Services Australia, Medicare, health.gov.au, PBS) despite the conversation involving PBS-subsidised medication and Medicare rebates, so claims about emergency dispensing, telehealth rebates, and repeat processes remain unverified. The response is reasonably actionable with named platforms and a clear next step (search clinic name on HotDoc/HealthEngine), and covers a fair breadth of options including paid telehealth alternatives. It is honest that it cannot identify the user's specific clinic and asks clarifying questions rather than inventing a link, which is good transparency, but overall the lack of any authoritative government source throughout the exchange limits verifiability significantly.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 1,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 0,
+        "total": 5.0,
+        "justification": "Only one official source (healthdirect.gov.au) is cited; the rest are private commercial telehealth/booking platforms (InstantScripts, Qoctor, HotDoc, etc.) presented as if equally reliable, without any government backing or verification links. The response gives clear, actionable website names/steps, but omits official PBS/Medicare channels for prescription renewal, and does not flag that these commercial recommendations are not government-authorized. No uncertainty or verification caveats are included despite recommending third-party paid services for a health/medication issue.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "gp_appointment",
+    "mean_total": 7.5,
+    "spread": 1.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 2,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 1,
+        "total": 7.0,
+        "justification": "The answer cites healthdirect.gov.au, an official Australian government service directory, which is verifiable and relevant, but HotDoc and HealthEngine are commercial third-party platforms, not government-authorized sources, so most claims about their booking process are unverified assertions. The websites given are correct and provide a clear actionable entry point (search by postcode/suburb), though no deeper procedural detail (e.g. screenshots, specific button names) is given. Depth is reasonable for the narrow question asked, covering both GP-finding and booking platforms without padding. The tone is appropriately hedged ('in many cases', 'not every clinic offers online booking') rather than overconfident, though it doesn't explicitly flag that HotDoc/HealthEngine are private, not government, services.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 3,
+        "depth": 2,
+        "transparency": 1,
+        "total": 8.0,
+        "justification": "The answer provides one official source (healthdirect.gov.au Service Finder) and two commercial third-party booking platforms (HotDoc, HealthEngine) with working-looking URLs, but does not clarify that the latter are private services rather than government-endorsed, and no citation supports claims about how these platforms function. It gives concrete, actionable entry points (exact URLs, simple usage steps) suitable for immediate action. Coverage is adequate for the narrow question asked but doesn't note any limitations or verify that all clinics use these platforms. No fabricated details are apparent, though the answer treats commercial services as equally authoritative to the government finder without distinction.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "diagnostics",
+    "mean_total": 6.5,
+    "spread": 3.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 2,
+        "specificity": 3,
+        "depth": 2,
+        "transparency": 1,
+        "total": 8.0,
+        "justification": "The answer cites real, plausible URLs including two official government-related sources (healthdirect.gov.au and health.gov.au/topics/screening-programs) alongside commercial booking platforms (HotDoc, HealthEngine) and Cancer Council Australia, which are relevant but not strictly government-authorized. It gives concrete, actionable entry points and clear instructions ('type your suburb or postcode'), making it easy to act on. Depth is adequate but narrow, focused tightly on answering 'what's the website' without padding or unnecessary elaboration. No invented claims or overconfidence are present, and the assistant doesn't assert facts beyond what the links support.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 2,
+        "depth": 1,
+        "transparency": 0,
+        "total": 5.0,
+        "justification": "Only healthdirect.gov.au is a clearly official government source; HotDoc and HealthEngine are private commercial booking platforms, and cancer.org.au/breastscreen.org.au are charity/program sites not explicitly verified as official government domains, yet all are presented uniformly as trustworthy. The response gives concrete clickable links matching earlier claims, which aids actionability, but omits previously mentioned cervical and bowel screening program links/phone numbers, reducing completeness. There is no acknowledgment that some sources are commercial rather than government-run, so the answer overstates the uniform reliability of the listed sites.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "job_search",
+    "mean_total": 6.0,
+    "spread": 2.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 2,
+        "specificity": 3,
+        "depth": 2,
+        "transparency": 0,
+        "total": 7.0,
+        "justification": "The answer cites plausible official domains (my.gov.au, servicesaustralia.gov.au, workforceaustralia.gov.au) which are legitimate government sites, giving some verifiability, but no actual links are checked for correctness of the specific URL paths (e.g., the jobseeker-payment page) and no other sources are cited to confirm claimed steps like exact menu wording ('Make a claim'). It is specific and actionable, giving a clear step-by-step flow and named entry points. Depth is reasonable but stays surface-level on requirements (e.g., no mention of eligibility nuances, waiting periods, or alternative contact channels beyond what's already given). It shows no hedging or acknowledgment of uncertainty, presenting all steps as fact without citing verification, so transparency is weak.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 1,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 0,
+        "total": 5.0,
+        "justification": "The answer names plausible official domains (my.gov.au, workforceaustralia.gov.au, servicesaustralia.gov.au) but never actually cites or links to specific pages, nor does it quote or reference any verifiable source content, so claims about exact steps, phone numbers, and process details (e.g., 'Select Make a claim', 'Job Seeker Profile' mechanics) are unverifiable assertions rather than sourced facts. It is reasonably specific and actionable, giving a stepwise path across three sites and a phone number, and covers a decent scope (payment application, job search platform, general boards) without excessive padding. However, it presents all details with full confidence and no caveats about needing to confirm current steps/URLs on the official site, so it fails the transparency criterion for distinguishing verified vs. assumed information.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "training",
+    "mean_total": 7.0,
+    "spread": 0.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 2,
+        "specificity": 3,
+        "depth": 2,
+        "transparency": 0,
+        "total": 7.0,
+        "justification": "The answer cites real, relevant official domains (my.gov.au, servicesaustralia.gov.au/jobseeker-payment, workforceaustralia.gov.au), which supports the core claim that online application portals exist. However, several specific claims - such as the 'Start your claim' button, the exact document list, and especially the backdating tip - are stated confidently with no source or caveat, risking invented specifics. The response is highly actionable (exact URLs, step order, required documents) and reasonably deep for the question asked, though it narrows to income-support application only and drops the earlier state training portals without noting that limitation. There is no acknowledgment of uncertainty or verification gaps anywhere in the answer, so it fails the transparency criterion.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 3,
+        "depth": 2,
+        "transparency": 0,
+        "total": 7.0,
+        "justification": "The answer cites real, official domains (my.gov.au, servicesaustralia.gov.au, workforceaustralia.gov.au) which are relevant and verifiable in principle, but no actual pages/links beyond homepages are given and no specific claims (e.g., document requirements, auto-linking behavior) are backed by cited sub-pages or quotes, so verifiability is only partial. It is highly actionable with clear step-by-step instructions and named entry points. Depth covers the main application steps and requirements but omits nuances like processing times, eligibility caveats, or what happens if not linked automatically. The answer states things like automatic linking to Workforce Australia as a general fact without flagging any uncertainty, showing overconfidence without sourcing that specific claim.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "jobseeker",
+    "mean_total": 6.5,
+    "spread": 1.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 0,
+        "specificity": 3,
+        "depth": 3,
+        "transparency": 0,
+        "total": 6.0,
+        "justification": "The answer states several specific, checkable figures (21-day processing target, 1-week ordinary waiting period, income maintenance period, up to 13-week liquid assets waiting period) but cites no source at all in this turn, and no link is given to confirm these numbers against the official page mentioned earlier. The structure and tips (submit early, backdating, having documents ready) are specific and actionable, and the breakdown of waiting-period types shows good depth/completeness. However, because confident quantitative claims are made without any citation or caveat that the user should verify current figures on the Services Australia site, it fails both verifiability and transparency criteria.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 3,
+        "depth": 2,
+        "transparency": 0,
+        "total": 7.0,
+        "justification": "The assistant cites genuine, relevant official Australian sources (Services Australia/Centrelink, myGov, Workforce Australia) and gives concrete phone numbers and steps, and later answers are appropriately hedged with 'approx' and 'check current figures' for waiting-period thresholds and processing times. However, the entire response rests on an unstated assumption that the user is in Australia \u2014 the user never said so, and the assistant never flags or questions this assumption, which is a serious transparency failure since if the user is elsewhere the whole answer is inapplicable. Specificity and step-by-step actionability are strong for the assumed jurisdiction, and depth covers processing time, waiting periods, and tips comprehensively, but the invented locale undermines confidence in the answer's overall reliability.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "parental_leave_pay",
+    "mean_total": 5.5,
+    "spread": 1.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 1,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 1,
+        "total": 6.0,
+        "justification": "The answer gives generally plausible processing information but cites no official source for the specific timeframes (e.g., '2-6 weeks' is explicitly attributed to anecdotal parent reports, not a government page), and no links are provided in this turn to confirm any of the claims. It offers a clear, actionable next step (apply 3 months prior, call Centrelink's Families line 136 150) and reasonably comprehensive coverage of what's needed (documents, notification steps) but lacks a specific official reference for authoritative processing times. Transparency is decent since it flags the estimate as anecdotal and recommends verifying with Centrelink directly, rather than presenting it as certain fact.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 1,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 0,
+        "total": 5.0,
+        "justification": "The answer gives no inline citations or links for the specific processing-time claims (2-4 weeks, 3 months before due date, 52 weeks window, Centrelink phone number) despite earlier turns providing URLs; none of these figures are directly sourced or verified here, so they read as confident assertions without backing. It does provide actionable next steps (claim window, required documents, phone number, myGov tracking) and covers multiple payment types, giving reasonable depth and specificity. However, it fails the transparency criterion by not flagging that these processing-time figures are unverified/approximate rather than confirmed via a cited official source, and it doesn't distinguish known vs. assumed information despite claiming precise time frames.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "file_tax",
+    "mean_total": 4.5,
+    "spread": 1.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 0,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 0,
+        "total": 4.0,
+        "justification": "The assistant provides detailed, plausible-sounding guidance on ATO lodgment via myGov/myTax, but across all three turns it cites no sources or links at all\u2014no reference to ato.gov.au or my.gov.au pages, so none of the specific claims (deadlines, verification methods, pre-fill timing, document lists) can be verified. The steps are fairly specific and actionable (entry point my.gov.au, linking process, document checklist) which would help a user act, and the depth is good with a thorough document list and process breakdown, but without any authoritative citation this could contain outdated or inaccurate details (e.g., exact pre-fill dates, deadline specifics) that the user cannot verify. There is no acknowledgment of uncertainty or that details should be confirmed on the official site, so it reads as fully confident despite being unsourced.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 0,
+        "specificity": 2,
+        "depth": 3,
+        "transparency": 0,
+        "total": 5.0,
+        "justification": "The entire conversation is detailed and plausible-sounding but contains zero citations or links to official sources (e.g., ato.gov.au) despite referencing specific ATO processes, deadlines, tools (myTax, myDeductions), and document requirements; nothing can be verified as stated. Specificity is reasonably good with concrete steps (my.gov.au, linking process, navigation path) that a user could attempt to follow, and depth is strong, covering income types, deductions, and record-keeping comprehensively. However, there is no acknowledgment of uncertainty or sourcing anywhere, and confident factual claims (deadlines, pre-fill timing, 5-year retention rule) are presented without any backing, so transparency and verifiability both fail badly despite the answer's apparent thoroughness.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "contest_tax",
+    "mean_total": 6.5,
+    "spread": 1.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 1,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 1,
+        "total": 6.0,
+        "justification": "The final answer appropriately refuses to give a false sense of certainty and asks clarifying questions, which is honest given the inherently case-specific nature of 'odds'. However, its 'General Patterns' section makes unsourced claims about success likelihood (e.g., 'usually good odds', 'decent odds') without linking to any ATO guidance, tribunal statistics, or case law to substantiate these generalizations. Earlier turns in the conversation did provide official links (ato.gov.au objections page, AAT, TPB register), but this specific turn stands alone without citation. The response is transparent about uncertainty and avoids inventing a definitive answer, which is a strength, but the substantive claims about odds patterns remain unverified.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 1,
+        "total": 7.0,
+        "justification": "The assistant correctly avoids inventing a probability and instead lists genuine qualitative factors (evidence quality, factual vs. legal ambiguity, ATO rulings) that are consistent with how tax objections generally work, and it points to a concrete next step (National Tax Clinic/registered tax agent) mentioned earlier in the conversation. However, no new official sources are cited in this turn, and earlier in the conversation a specific 'how to object' ATO link was misleadingly presented as a real URL while pointing only to the generic ato.gov.au domain, undermining verifiability. The response is actionable in a general sense but lacks a direct link or concrete criteria a person could use to self-assess strength of case. It is appropriately transparent about the limits of what can be said without more information.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "tax_refund",
+    "mean_total": 6.5,
+    "spread": 5.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 0,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 0,
+        "total": 4.0,
+        "justification": "The answer provides detailed ATO phone numbers, portal navigation steps, and status terminology, but none of this is backed by any linked or cited official source (e.g., ato.gov.au) across any of the three turns\u2014all claims are asserted from apparent general knowledge. While the guidance is plausible and moderately actionable (specific phone numbers, menu paths), there's no way for the reader to verify accuracy, and the answer presents everything with full confidence without flagging any uncertainty or noting what couldn't be confirmed. Depth is reasonable, covering hardship provisions, agent escalation, and common delay causes, but this thoroughness doesn't compensate for the total absence of sourcing.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 3,
+        "depth": 3,
+        "transparency": 1,
+        "total": 9.0,
+        "justification": "The answer cites only one official source (ato.gov.au/contact-us) and provides ATO phone numbers without direct links to confirm their validity or the hardship priority process, though the general information aligns with known ATO practices. It gives clear, actionable steps (numbers to call, evidence to prepare, timeframe thresholds) and covers a broad range of relevant scenarios (hardship, errors, agent help, scams) without padding. It is honest that no official 'speed up' website exists rather than inventing one, which is a strong transparency point, but the lack of direct citations for phone-based procedures limits verifiability.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "tax_deductions",
+    "mean_total": 4.0,
+    "spread": 0.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 0,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 0,
+        "total": 4.0,
+        "justification": "The answer makes numerous specific factual claims (exact processing times like '7-12 days', 'up to 10 weeks', advice to avoid lodging in the first week of July, tax agent portal timing) without citing any official source such as ato.gov.au pages on lodgment timeframes; no links are provided anywhere in the conversation. While the guidance is plausible and organized with clear actionable steps (myGov/ATO portal, phone number, app), none of it can be verified against an authoritative source, and the assistant presents these numbers with high confidence rather than flagging them as approximate or unverified.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 0,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 0,
+        "total": 4.0,
+        "justification": "The assistant provides detailed, plausible-sounding information (deduction categories, myGov steps, processing timeframes like '2 weeks' and 'up to 10 weeks', phone number 13 28 61) but cites zero sources anywhere in the conversation \u2014 no links to ato.gov.au or my.gov.au are given despite specific claims like the 67 cents/hour rate or exact processing windows. This makes none of the material claims verifiable per the rubric, even though the content is specific and mostly actionable (clear channels: myTax, myGov, ATO app, phone number). Depth is reasonable, covering common deductions, PAYG adjustments, and tracking status stages, but the total absence of citations and no acknowledgment of uncertainty (e.g., 'this is my general knowledge, verify on ato.gov.au') is a major flaw.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "myGov",
+    "mean_total": 7.5,
+    "spread": 1.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 2,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 1,
+        "total": 7.0,
+        "justification": "The answer correctly names real official portals (my.gov.au, Service NSW, VicRoads, etc.) and accurately describes myGov's federal scope versus state-based services, but provides no direct links or citations to verify claims, relying on the model's general knowledge. It gives a clear, actionable recommendation (set up myGov plus your state portal) though without exact step-by-step instructions or requirements. It covers most relevant aspects (what's included, what's excluded, practical next step) without much padding, and honestly flags the limits of myGov's coverage rather than overstating its capabilities.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 2,
+        "depth": 3,
+        "transparency": 1,
+        "total": 8.0,
+        "justification": "The answer links to genuine official portals (myGov, Services Australia, ATO, AEC, state service sites) and its core claims (myGov as a federal hub, states handling licensing/rego separately) are plausible and consistent with those sites, though no specific page is cited for finer details like the AEC's 'digital licence linking' or exact update timeframes (e.g., '14 days in NSW'), which are stated confidently without a direct source. It gives clear actionable next steps (create myGov account, link services, check state portal) and covers a fairly comprehensive scope (federal vs state, what's excluded) without much padding. It doesn't explicitly flag uncertainty on the few unverified specifics (e.g., NSW driver's licence update deadline), slightly hurting transparency.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "abn",
+    "mean_total": 6.0,
+    "spread": 2.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 1,
+        "specificity": 3,
+        "depth": 2,
+        "transparency": 1,
+        "total": 7.0,
+        "justification": "The answer cites legitimate official domains (business.gov.au, asic.gov.au, ato.gov.au, abr.gov.au), but only as generic homepages rather than specific pages that actually verify the numeric claims made (e.g., exact ABN processing times, $597 company fee, $310 annual review fee, 28-day TFN timeline) \u2014 so most specific figures are unsupported by a direct citation. Actionability is strong: it gives a clear entry point (register.business.gov.au) plus individual portals and a concrete document checklist. Depth is good, covering timeframes, costs, ongoing fees, and scenario breakdowns, though without sourcing this can't be confirmed as accurate. Transparency is only partial \u2014 it hedges once on ASIC fee indexing but states other time/cost figures with unwarranted confidence and no links to back them.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 1,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 0,
+        "total": 5.0,
+        "justification": "The answer gives specific dollar figures and timeframes (e.g., ACN $597, annual review $321, ABN processing times) without citing a specific page for each fee/time claim, only generically pointing to asic.gov.au and business.gov.au at the end; no direct links to ASIC's actual fee schedule or ABR processing time page are provided, so most numeric claims are unverifiable from the given sources. It is specific and actionable (clear cost/time tables, entry point via register.business.gov.au) and covers most relevant registration types (ABN, business name, company, GST/PAYG), but omits mention of things like state/territory licensing costs. It presents all figures confidently as current facts without flagging that some (e.g., processing times) are approximate or could vary, despite a caveat only for fees indexation, so transparency is weak given the volume of unsourced specifics.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "medicare_enrolment",
+    "mean_total": 7.0,
+    "spread": 0.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 1,
+        "specificity": 3,
+        "depth": 2,
+        "transparency": 1,
+        "total": 7.0,
+        "justification": "The answer references plausible official domains (servicesaustralia.gov.au, my.gov.au, phone 132 011) but provides no actual verified links, quoted source content, or confirmation that the specific referenced page paths or form details are current \u2014 this reads as generated knowledge rather than tool-verified citation. It is fairly specific and actionable (named form MS001, myGov steps, phone number, scam warning) and reasonably comprehensive across common scenarios (newborns, migrants, name change, turning 15). It appropriately hedges with repeated recommendations to verify current requirements on the official site rather than asserting unconfirmed details as fact.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 2,
+        "depth": 3,
+        "transparency": 0,
+        "total": 7.0,
+        "justification": "The answer only cites a generic Services Australia homepage/medicare page link and never verifies or sources specific claims like the 'MS001 form' name, the exact RHCA country list, or the detailed document checklists, so most granular claims are unverifiable. It does give actionable next steps (myGov, phone number, service centre) and covers a broad range of scenarios (newborn, citizen, PR, RHCA) with reasonable depth. However, it states specific procedural details (form numbers, document lists, certification requirements) with full confidence and no caveats distinguishing verified from assumed information, which is a transparency failure given the lack of supporting links for those specifics.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "legislation_lex_au",
+    "mean_total": 8.0,
+    "spread": 2.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 1,
+        "specificity": 2,
+        "depth": 3,
+        "transparency": 1,
+        "total": 7.0,
+        "justification": "The assistant describes generic features of legislation.gov.au (compilation numbers, end dates, latest version labels) but never provides an actual link, screenshot, or quoted confirmation from the site, so none of these claims are directly verified against a real source. The guidance is procedurally clear and thorough for a general legal-research skill, and it appropriately avoids asserting specific current text or dates, which is honest. However, without any concrete citation or verified compilation detail, the verifiability is weak despite reasonable specificity and depth.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 3,
+        "depth": 3,
+        "transparency": 1,
+        "total": 9.0,
+        "justification": "The answer correctly points to the Federal Register of Legislation (the authoritative source) and AustLII, both real and relevant, though it does not supply a specific verified quote or a deep link to s 65 itself. It gives a genuinely actionable, step-by-step method for confirming currency (Details tab, compilation number, endnotes, cross-referencing), which a user could follow immediately. Coverage is thorough, addressing compilation status, pending amendments, and secondary verification via Fair Work Ombudsman. The assistant is appropriately transparent about not having verbatim text and repeatedly flags uncertainty rather than asserting specifics as fact.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "legislation_federal_register",
+    "mean_total": 7.5,
+    "spread": 1.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 2,
+        "specificity": 2,
+        "depth": 3,
+        "transparency": 1,
+        "total": 8.0,
+        "justification": "The assistant correctly directs the user to the official Federal Register of Legislation and secondary sources like Fair Work Ombudsman and AustLII, but never provides a direct URL to s 65 itself, only the general homepage and a description of how to navigate there. It gives thorough, procedurally accurate guidance on checking compilation numbers, endnotes, and amendment history to confirm currency, which is detailed and generally correct in describing how the Register works. Throughout, it is transparent about not having live access and avoids asserting the current text with false confidence, which is commendable. However, lack of a precise link or citation to the actual current text limits both verifiability and actionable specificity.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 1,
+        "total": 7.0,
+        "justification": "The answer correctly identifies legislation.gov.au as the official Federal Register of Legislation and explains genuine features of that site (compilation dates, end-date field, amendment history) that are indeed how currency is signaled, but it does not actually verify or link to a current compilation of s 65, and the earlier-provided link was already flagged as potentially outdated. It gives clear, actionable steps (check 'Latest version' tag, end date, amendment history, cross-check with Fair Work Ombudsman) making it useful for a user to act on, and covers a fairly complete range of verification methods without excessive padding. It appropriately avoids asserting the current text and repeatedly flags uncertainty, recommending professional verification for high-stakes use, so it is honest rather than overconfident.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "service_id": "legislation_austlii",
+    "mean_total": 7.0,
+    "spread": 0.0,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "verifiability": 1,
+        "specificity": 2,
+        "depth": 3,
+        "transparency": 1,
+        "total": 7.0,
+        "justification": "The assistant repeatedly names the Federal Register of Legislation and Fair Work Ombudsman as authoritative sources but never provides an actual URL or link to the specific compilation or section 65, so claims are not directly verifiable by the user. It does give clear, actionable navigation steps (site name, search term, Part/Division/Section location) and a thorough explanation of how to confirm currency (compilation numbers, status field, endnotes, uncommenced amendments), which is comprehensive and useful. Throughout, it appropriately flags uncertainty about its own recollection and defers to primary sources rather than asserting the text confidently.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "verifiability": 2,
+        "specificity": 2,
+        "depth": 2,
+        "transparency": 1,
+        "total": 7.0,
+        "justification": "The assistant provides only a generic legislation.gov.au Series link (plausibly official) and an explicitly fabricated placeholder compilation URL, so only partial official sourcing is achieved. It gives a clear, workable process (search, select latest compilation, check timeline/endnotes) but no exact section-level link or confirmed compilation number, limiting actionability. The explanation of compilation vs as-made versions and the 'Show Timeline' feature adds reasonable depth on how to verify currency, though it stops short of demonstrating the process. Throughout, the model is transparent about its lack of live access and refrains from asserting unverified facts, which is commendable.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  }
+]

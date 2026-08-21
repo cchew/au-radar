@@ -1,0 +1,233 @@
+[
+  {
+    "task_id": "passport_agent",
+    "mean_total": 1.7,
+    "spread": 0.0,
+    "disagreement_flagged": false,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "findability": 1,
+        "portal_quality": 0,
+        "agent_permeability": 0,
+        "service_access": 0,
+        "structured_access": 0,
+        "navigation_efficiency": 0,
+        "raw": 4,
+        "total": 1.7,
+        "justification": "The agent reached the official passports.gov.au domain, satisfying findability. However, every subsequent interaction failed: clicks on 'Adult passport', 'Contact us', and the search field all timed out after 30000ms, and repeated navigations to sub-pages (e.g., /apply, /passports/adult-passport) returned only the same truncated banner text about Brisbane office relocation, never rendering usable content. This indicates a broken or agent-hostile page structure with unlabeled/unresponsive controls, scoring 0 on portal quality and agent permeability. No service initiation or authentication gateway was ever reached, and no machine-readable endpoints were exposed.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "findability": 1,
+        "portal_quality": 0,
+        "agent_permeability": 0,
+        "service_access": 0,
+        "structured_access": 0,
+        "navigation_efficiency": 0,
+        "raw": 4,
+        "total": 1.7,
+        "justification": "The agent reached the official passports.gov.au domain, but every subsequent click and navigation attempt returned only the same stale banner text about the Brisbane Passport Office relocation, indicating the page content failed to load or render properly for automated interaction. Multiple click attempts (e.g., 'Adult passport', 'Search', 'Fees', 'Application portal') timed out with Locator.click Timeout errors, showing controls were unreachable or non-functional for the agent. No service information, application pathway, or authentication gateway was ever reached, and no structured/machine-readable endpoints were found (sitemap.xml navigation also returned the same broken banner).",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "task_id": "ato_agent",
+    "mean_total": 3.35,
+    "spread": 2.5,
+    "disagreement_flagged": true,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "findability": 1,
+        "portal_quality": 2,
+        "agent_permeability": 1,
+        "service_access": 4,
+        "structured_access": 0,
+        "navigation_efficiency": 0,
+        "raw": 11,
+        "total": 4.6,
+        "justification": "The agent was blocked by an Akamai edge rule on the main ato.gov.au domain ('Access Denied ... on this server') but successfully reached official ATO subdomains (onlineservices.ato.gov.au/business, onlineservices.ato.gov.au/onlineservices) and my.gov.au, satisfying findability. The onlineservices.ato.gov.au/onlineservices page displayed the 'Continue with Digital ID' authentication gateway, confirming a genuine service initiation pathway was reached (service_access=4), though the agent never passed it (Sign in click timed out). Overall permeability is poor since the primary domain and Google search were both blocked, and no API or structured data endpoints were observed.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "findability": 1,
+        "portal_quality": 1,
+        "agent_permeability": 0,
+        "service_access": 0,
+        "structured_access": 0,
+        "navigation_efficiency": 0,
+        "raw": 5,
+        "total": 2.1,
+        "justification": "The agent reached the official my.gov.au portal (sign-in/create account page) and confirmed ato.gov.au exists via Bing search snippets, satisfying findability. However, direct access to ato.gov.au and its subpages was repeatedly blocked with 'Access Denied' (Akamai edge errors, Reference #18.c4b42e17...) and onlineservices.ato.gov.au returned a PRX-001 proxy error; Google and DuckDuckGo searches were also blocked by CAPTCHA/bot challenges. This constitutes active blocking of automated access (agent_permeability=0), and no specific tax-lodgment service or authentication gateway for that service was ever reached, only the generic myGov sign-in page, so service_access is 0. No API or machine-readable endpoint was found, giving structured_access 0.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "task_id": "medicare_agent",
+    "mean_total": 6.45,
+    "spread": 0.5,
+    "disagreement_flagged": false,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "findability": 1,
+        "portal_quality": 3,
+        "agent_permeability": 2,
+        "service_access": 3,
+        "structured_access": 0,
+        "navigation_efficiency": 3,
+        "raw": 15,
+        "total": 6.2,
+        "justification": "The agent reached the official Services Australia Medicare pages and navigated through 'How to claim' to 'Medicare claims' then to a myGov sign-in gateway offering Digital ID/passkey/username-password options, confirming an authentication boundary was reached ('Sign in to myGov / Choose how to sign in'). The portal has clear labeled navigation (Individuals, Health professionals, Businesses) allowing task completion in a few clicks, but no machine-readable endpoints or API were exposed. No CAPTCHA or blocking was encountered, but the myGov login is a distinct authentication silo requiring credentials, limiting further automated access.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "findability": 1,
+        "portal_quality": 3,
+        "agent_permeability": 3,
+        "service_access": 3,
+        "structured_access": 0,
+        "navigation_efficiency": 3,
+        "raw": 16,
+        "total": 6.7,
+        "justification": "The agent reached official Services Australia pages (servicesaustralia.gov.au/medicare, /how-to-claim-medicare-benefit, /medicare-claims) via straightforward navigation and clicks, confirming findability. The portal architecture used consistent labeled navigation (Individuals, Sign in, Search) and clear content sections like 'Claim Medicare benefits online', reflecting a well-structured but multi-step citizen portal (not quite two-click). No CAPTCHA, Cloudflare, or geo-blocks were encountered, and the site rendered normal HTML content accessible to the agent, though no machine-readable endpoints were exposed. The trace reached the exact authentication boundary ('Sign in to myGov' to 'Make a claim'), confirming a full initiation pathway up to but not past login, per the evidence and outcome. No API or structured data access was found or attempted.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "task_id": "abn_agent",
+    "mean_total": 6.7,
+    "spread": 0.0,
+    "disagreement_flagged": false,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "findability": 1,
+        "portal_quality": 3,
+        "agent_permeability": 2,
+        "service_access": 3,
+        "structured_access": 0,
+        "navigation_efficiency": 4,
+        "raw": 16,
+        "total": 6.7,
+        "justification": "The agent reached the official ABR site (abr.gov.au) and navigated via clear labeled links ('Apply for an ABN' -> 'Applying for an ABN' -> 'Apply or reapply for an ABN') to the ABRS application entry point, showing good IA with descriptive navigation. No CAPTCHA or blocking was observed, but the agent stopped before the external ABRS form where login/identity verification (myID) would be required, indicating a standard but not agent-optimized gateway. The trace confirms an initiation pathway was found up to the authentication boundary but did not proceed past it. No machine-readable API or structured endpoint was found or used.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "findability": 1,
+        "portal_quality": 3,
+        "agent_permeability": 3,
+        "service_access": 2,
+        "structured_access": 0,
+        "navigation_efficiency": 4,
+        "raw": 16,
+        "total": 6.7,
+        "justification": "The agent reached the official abr.gov.au government portal and navigated via clearly labeled links ('Apply for an ABN' -> 'Applying for an ABN') to find the entry point 'Apply or reapply for an ABN' external link, showing good citizen-centric structure in just two clicks. No CAPTCHA, Cloudflare, or geo-blocking was encountered during navigation, indicating high agent permeability. However, the agent stopped at the pre-authentication page without confirming passage through an actual authentication gateway, so service access is information-located but not fully verified at the boundary. No machine-readable API or structured data endpoints were observed in the trace.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "task_id": "legislation_lex_au",
+    "mean_total": 1.7,
+    "spread": 0.0,
+    "disagreement_flagged": false,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "findability": 0,
+        "portal_quality": 0,
+        "agent_permeability": 0,
+        "service_access": 0,
+        "structured_access": 0,
+        "navigation_efficiency": 4,
+        "raw": 4,
+        "total": 1.7,
+        "justification": "Both https://lex.au and http://lex.au failed with net::ERR_NAME_NOT_RESOLVED, meaning the domain does not resolve and no government page was ever reached. There is no evidence of any portal, service, or structured access being found, so all dimensions score at the floor.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "findability": 0,
+        "portal_quality": 0,
+        "agent_permeability": 0,
+        "service_access": 0,
+        "structured_access": 0,
+        "navigation_efficiency": 4,
+        "raw": 4,
+        "total": 1.7,
+        "justification": "Both navigation attempts to lex.au and www.lex.au failed with ERR_NAME_NOT_RESOLVED, meaning the domain could not be reached at all. No government page was ever loaded, so no aspects of portal quality, agent permeability, service access, or structured access could be observed or scored above zero.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "task_id": "legislation_federal_register",
+    "mean_total": 2.3,
+    "spread": 0.4,
+    "disagreement_flagged": false,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "findability": 1,
+        "portal_quality": 1,
+        "agent_permeability": 1,
+        "service_access": 0,
+        "structured_access": 0,
+        "navigation_efficiency": 0,
+        "raw": 6,
+        "total": 2.5,
+        "justification": "The agent reached the official legislation.gov.au site and a specific act page (C2009A00028), but the page content remained static across nearly every interaction, with search fields timing out (\"Locator.fill: Timeout 30000ms exceeded\" on the search box) and expand/click actions repeatedly failing or returning unchanged content. This indicates a heavily JS-dependent, non-agent-friendly interface where controls could not be reliably read or acted upon. No service initiation was found since this is a legislation lookup portal, not a transactional government service, so service_access and structured_access are 0.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "findability": 1,
+        "portal_quality": 1,
+        "agent_permeability": 0,
+        "service_access": 0,
+        "structured_access": 0,
+        "navigation_efficiency": 0,
+        "raw": 5,
+        "total": 2.1,
+        "justification": "The agent reached the official legislation.gov.au domain, but interactive elements repeatedly failed to render actionable content -- search input timed out ('waiting for get_by_placeholder(\"Search for\")'), clicks on 'Expand Chapter 2' and 'Select value' timed out, and read_page consistently returned only the static header/nav skeleton rather than page content. This indicates a heavily JS-dependent interface that is not accessible to the agent's tools, effectively blocking interaction despite no explicit CAPTCHA. No service initiation was found; this is an information/legislation lookup site, not a transactional service, so service_access and structured_access remain at 0.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+  {
+    "task_id": "legislation_austlii",
+    "mean_total": 1.45,
+    "spread": 0.5,
+    "disagreement_flagged": false,
+    "trial_count": 2,
+    "trial_scores": [
+      {
+        "findability": 0,
+        "portal_quality": 0,
+        "agent_permeability": 0,
+        "service_access": 0,
+        "structured_access": 0,
+        "navigation_efficiency": 3,
+        "raw": 3,
+        "total": 1.2,
+        "justification": "Every navigation attempt to austlii.edu.au (homepage, classic subdomain, www8 subdomain, and deep link to s65) returned a Cloudflare 'Sorry, you have been blocked' page, and even the Google fallback search triggered a CAPTCHA, so no official page content was ever actually reached or rendered. This is a clear case of active bot-blocking with no accessible content, warranting 0 across findability, portal quality, agent permeability, and service access, with no machine-readable access demonstrated either.",
+        "model": "claude-sonnet-5"
+      },
+      {
+        "findability": 0,
+        "portal_quality": 0,
+        "agent_permeability": 0,
+        "service_access": 0,
+        "structured_access": 0,
+        "navigation_efficiency": 4,
+        "raw": 4,
+        "total": 1.7,
+        "justification": "Both navigation attempts to austlii.edu.au (direct URL and homepage) returned a Cloudflare 'Sorry, you have been blocked' page, indicating an active block that prevented any access to the site. No government service page or content was reached, so findability and all downstream dimensions score at the floor. This is a clear case of active blocking (Cloudflare security service) with zero permeability.",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  }
+]

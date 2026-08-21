@@ -1,0 +1,15 @@
+<!doctype html>
+<html><body>
+<h1>Loading document renewal service...</h1>
+<div id="widget"></div>
+<script>
+  // Simulates a client-side-rendered SSO widget that injects its password
+  // field after the initial page load, not synchronously with page.goto().
+  setTimeout(function () {
+    document.getElementById("widget").innerHTML =
+      '<form><input type="text" placeholder="Username" />' +
+      '<input type="password" placeholder="Password" />' +
+      '<button type="submit">Sign in</button></form>';
+  }, 200);
+</script>
+</body></html>
