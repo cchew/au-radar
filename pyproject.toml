@@ -1,6 +1,6 @@
 [project]
 name = "au-radar"
-version = "0.1.2"
+version = "0.2.0"
 description = "AU sovereign-legibility benchmark, RADAR-consistent"
 requires-python = ">=3.11"
 dependencies = [
@@ -13,6 +13,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+au-radar = "au_radar.cli:main"
+
+[tool.setuptools.package-data]
+au_radar = ["data/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

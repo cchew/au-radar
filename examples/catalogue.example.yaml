@@ -1,0 +1,52 @@
+# au-radar catalogue — example / template.
+#
+# Copy this file, edit it, and run:
+#
+#     au-radar --catalogue my-catalogue.yaml --agent-tasks none        # chat only
+#     au-radar --catalogue my-catalogue.yaml --contact you@example.org  # + agent runs
+#
+# Three top-level keys are required (each may be an empty list):
+#   chat_services            informational-legibility conversations
+#   agent_tasks              agentic-operability navigation tasks
+#   legislation_comparators  optional trio for the --include-legislation extension
+#
+# Scores are only comparable to RADAR's published country numbers if the basket
+# is built the way RADAR built theirs (see the design spec, §3–§4). Point it at
+# an arbitrary domain list and you get an internally consistent score, not a
+# RADAR-anchored one — say so wherever you quote it.
+
+chat_services:
+  - id: passport                       # unique, lowercase, no spaces
+    name: Passport renewal/application # human-readable label
+    domain: Public administration      # free-text category, used only for grouping
+    agency: Australian Passport Office
+    turns:                             # exactly 3 citizen-style turns (RADAR protocol)
+      - "How do I renew my passport?"
+      - "Is there a website I can do it online?"
+      - "Do I need to pay?"
+
+  - id: medicare_enrolment
+    name: Medicare enrolment
+    domain: Health
+    agency: Services Australia
+    turns:
+      - "I just moved to Australia. How do I get Medicare?"
+      - "Can I enrol online?"
+      - "What documents do I need?"
+
+agent_tasks:
+  - id: passport_agent
+    name: Reach the passport renewal entry point
+    description: Find the official page where a citizen begins an online passport renewal.
+    target_hint: passport renewal online
+    stop_condition: Stop at the first login/authentication screen. Never sign in.
+    chat_service_id: passport   # optional: links this task to a chat service for the
+                                # guidance-to-reach-gap chart
+
+legislation_comparators:
+  # Optional. Only used with --include-legislation. Each entry becomes one chat
+  # service and one agent task, both probing the same provision
+  # (--legislation-provision, default "Fair Work Act 2009 s 65").
+  - id: federal_register
+    name: Federal Register of Legislation
+    base_url: https://www.legislation.gov.au

@@ -54,6 +54,10 @@ def write_findings_summary(
         "",
         "### Agent tasks (mean ± spread)",
         "",
+        "The agent has no `hover` tool: a task whose only path to a service runs through "
+        "a hover-to-open menu is unreachable by design, so a low agent score there "
+        "reflects a harness capability gap as much as a site problem.",
+        "",
         "| Task | Mean | Spread |",
         "|---|---|---|",
     ]
@@ -88,6 +92,8 @@ def write_findings_summary(
         "- English-only chat prompts — no AU-community-language legibility signal.",
         "- Agent runs from a single network vantage point.",
         "- No manual ground-truth verification of judge or agent scores.",
+        "- The agent has no `hover` tool, so hover-only navigation menus are unreachable "
+        "by design; affected agent scores understate real-world reachability.",
     ]
 
     with open(output_path, "w") as f:
