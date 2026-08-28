@@ -3,10 +3,41 @@ from dataclasses import dataclass, field
 from au_radar.anthropic_utils import extract_tool_use
 from au_radar.catalogue import AgentTask, Catalogue
 
-# How long to let async-rendered content (e.g. an SSO widget injected by
-# client-side JS after navigation/click) settle before the next guardrail
-# check. Must exceed realistic injection delays -- see FUTURE.md.
+# Login-field settle behaviour. After each action the harness waits a fixed
+# baseline (so page content has rendered before it's read), then polls for a
+# late-appearing login field -- an SSO widget injected by client-side JS well
+# after navigation -- returning the instant one is seen and otherwise giving
+# up at the cap. A single fixed wait could be outrun by a slow SSO flow; the
+# cost of the poll is that a step which never surfaces a login field pays the
+# full cap. Acceptable for a human-supervised research run. See FUTURE.md.
 LOGIN_FIELD_SETTLE_MS = 500
+LOGIN_FIELD_SETTLE_MAX_MS = 2000
+LOGIN_FIELD_POLL_MS = 250
+
+# Any frame containing one of these is treated as an auth boundary.
+_LOGIN_FIELD_SELECTORS = (
+    'input[type="password"]',
+    'input[autocomplete="current-password"]',
+    'input[autocomplete="one-time-code"]',
+)
+
+# High-precision substrings for federated-auth / OIDC / SAML URLs. Matching one
+# stops the run even before the login form itself has rendered (the redirect
+# step). Kept deliberately narrow to avoid premature stops on ordinary pages.
+_AUTH_URL_MARKERS = (
+    "login.microsoftonline.com",
+    ".okta.com",
+    "auth0.com",
+    "myid.gov.au",
+    "login.my.gov.au",
+    "samlrequest=",
+    "response_type=code",
+    "response_type=token",
+    "/oauth2/authorize",
+    "/oauth/authorize",
+    "/connect/authorize",
+    "/saml2/idp",
+)
 
 TOOLS = [
     {
@@ -85,25 +116,53 @@ class AgentTrace:
     evidence: list[str] = field(default_factory=list)
 
 
+def _url_looks_like_auth(url: str) -> bool:
+    u = (url or "").lower()
+    return any(marker in u for marker in _AUTH_URL_MARKERS)
+
+
 def _page_has_login_field(page) -> bool:
     """Code-level safety net: never trust the model's own judgment about
     whether it has reached an auth boundary. This is checked before every
     action, independent of what the model asks to do next.
 
-    Walks every frame, not just the main frame -- AU government SSO widgets
-    (myGovID-style) commonly render their password field inside an embedded
-    iframe, which a main-frame-only check would miss entirely.
+    Positive if the page URL or any frame URL matches a known federated-auth
+    pattern (catches the redirect before the form renders), or if any frame
+    -- not just the main frame, since AU government SSO widgets commonly
+    render inside an embedded iframe -- contains a password, current-password,
+    or one-time-code input.
     """
+    try:
+        if _url_looks_like_auth(page.url):
+            return True
+    except Exception:
+        pass
     for frame in page.frames:
         try:
-            if frame.locator('input[type="password"]').count() > 0:
+            if _url_looks_like_auth(frame.url):
                 return True
+            for selector in _LOGIN_FIELD_SELECTORS:
+                if frame.locator(selector).count() > 0:
+                    return True
         except Exception:
             # A frame can detach mid-check (navigation racing the check, an
             # iframe being removed). Treat as inconclusive for that frame,
             # never as license to proceed -- other frames are still checked.
             continue
     return False
+
+
+def _settle_for_login_field(page) -> None:
+    """Wait the fixed baseline, then poll (up to the cap) for a login field
+    that appears late, returning as soon as one is seen. See the constants
+    above for the rationale and cost."""
+    page.wait_for_timeout(LOGIN_FIELD_SETTLE_MS)
+    waited = LOGIN_FIELD_SETTLE_MS
+    while waited < LOGIN_FIELD_SETTLE_MAX_MS:
+        if _page_has_login_field(page):
+            return
+        page.wait_for_timeout(LOGIN_FIELD_POLL_MS)
+        waited += LOGIN_FIELD_POLL_MS
 
 
 def run_agent_task(page, client, task: AgentTask, model: str, max_steps: int = 15) -> AgentTrace:
@@ -158,9 +217,9 @@ def run_agent_task(page, client, task: AgentTask, model: str, max_steps: int = 1
                 pass  # observation captured below regardless of action
 
             # Let async-rendered content (e.g. an SSO widget injected after the
-            # page settles) appear before the next loop iteration's guardrail
-            # check runs -- see LOGIN_FIELD_SETTLE_MS.
-            page.wait_for_timeout(LOGIN_FIELD_SETTLE_MS)
+            # page settles) appear before the page is read and before the next
+            # loop iteration's guardrail check -- see _settle_for_login_field.
+            _settle_for_login_field(page)
             observation = page.inner_text("body")
         except Exception as exc:
             # A failed action (element not clickable, navigation timeout,

@@ -1,5 +1,7 @@
+import pytest
+
 from au_radar.catalogue import AgentTask, Catalogue
-from au_radar.agent_harness import run_agent_task, run_all_agent_trials
+from au_radar.agent_harness import _url_looks_like_auth, run_agent_task, run_all_agent_trials
 
 
 class FakeMessage:
@@ -80,6 +82,71 @@ def test_agent_hard_stops_on_async_rendered_password_field(fixture_server, brows
 
     assert trace.outcome == "reached_auth_boundary"
     assert "type_text" not in [s.action for s in trace.steps]
+
+
+def test_agent_hard_stops_on_login_field_injected_after_the_baseline_settle(fixture_server, browser_page):
+    # slow_async_login.html injects the password field at 900ms -- past the
+    # 500ms baseline, so only the poll in _settle_for_login_field catches it.
+    task = AgentTask(id="t", name="x", description="x", target_hint="x", stop_condition="x")
+    client = FakeClient(tool_calls=[
+        ("navigate", {"url": fixture_server + "/slow_async_login.html"}),
+        ("type_text", {"description": "Username", "text": "should-never-run"}),
+    ])
+
+    trace = run_agent_task(browser_page, client, task, model="claude-sonnet-5", max_steps=10)
+
+    assert trace.outcome == "reached_auth_boundary"
+    assert "type_text" not in [s.action for s in trace.steps]
+
+
+def test_agent_hard_stops_on_one_time_code_field(fixture_server, browser_page):
+    task = AgentTask(id="t", name="x", description="x", target_hint="x", stop_condition="x")
+    client = FakeClient(tool_calls=[
+        ("navigate", {"url": fixture_server + "/otp_login.html"}),
+        ("type_text", {"description": "6-digit code", "text": "should-never-run"}),
+    ])
+
+    trace = run_agent_task(browser_page, client, task, model="claude-sonnet-5", max_steps=10)
+
+    assert trace.outcome == "reached_auth_boundary"
+    assert "type_text" not in [s.action for s in trace.steps]
+
+
+def test_agent_hard_stops_on_oidc_authorize_redirect_url(fixture_server, browser_page):
+    # A federated-auth redirect URL is an auth boundary even before any
+    # password field has rendered.
+    task = AgentTask(id="t", name="x", description="x", target_hint="x", stop_condition="x")
+    client = FakeClient(tool_calls=[
+        ("navigate", {"url": fixture_server + "/service.html?response_type=code&client_id=x"}),
+        ("read_page", {}),
+    ])
+
+    trace = run_agent_task(browser_page, client, task, model="claude-sonnet-5", max_steps=10)
+
+    assert trace.outcome == "reached_auth_boundary"
+    assert [s.action for s in trace.steps] == ["navigate"]  # stopped before the 2nd action
+
+
+@pytest.mark.parametrize("url", [
+    "https://login.microsoftonline.com/common/oauth2/authorize?response_type=code",
+    "https://example.okta.com/login/login.htm",
+    "https://idp.example.com/saml2/idp/SSOService.php?SAMLRequest=abc",
+    "https://service.example.gov.au/oauth2/authorize?client_id=x",
+    "https://myid.gov.au/",
+])
+def test_url_looks_like_auth_positive(url):
+    assert _url_looks_like_auth(url)
+
+
+@pytest.mark.parametrize("url", [
+    "https://www.passports.gov.au/renew-passport",
+    "https://www.servicesaustralia.gov.au/medicare",
+    "https://www.legislation.gov.au/Details/C2009A00028",
+    "about:blank",
+    "",
+])
+def test_url_looks_like_auth_negative(url):
+    assert not _url_looks_like_auth(url)
 
 
 def test_agent_recovers_from_a_failed_click_instead_of_crashing(fixture_server, browser_page):

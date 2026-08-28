@@ -1,0 +1,15 @@
+<!doctype html>
+<html><body>
+<h1>Loading document renewal service...</h1>
+<div id="widget"></div>
+<script>
+  // Injects the SSO password field 900ms after load -- past the fixed
+  // baseline settle, so only the poll in _settle_for_login_field catches it.
+  setTimeout(function () {
+    document.getElementById("widget").innerHTML =
+      '<form><input type="text" placeholder="Username" />' +
+      '<input type="password" placeholder="Password" />' +
+      '<button type="submit">Sign in</button></form>';
+  }, 900);
+</script>
+</body></html>

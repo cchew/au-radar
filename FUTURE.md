@@ -56,11 +56,31 @@ retry budget on a large enough run:
   thinking tokens can exhaust the budget before a `tool_use` block is
   emitted at all. Raised to 2048, matching `judge.py`.
 
+## Auth-boundary detection hardening (2026-08-28, v0.2.0)
+
+`_page_has_login_field()` and the post-action settle were widened:
+
+- The single fixed 500ms wait became `_settle_for_login_field()`: the 500ms
+  baseline still runs (page content must render before it's read), then a
+  250ms poll continues up to `LOGIN_FIELD_SETTLE_MAX_MS` (2000ms), returning
+  the instant a field appears. Catches SSO widgets injected after the old
+  window. Cost: a step that never surfaces a login field now pays the full
+  2000ms cap.
+- Detection beyond `input[type="password"]`: also
+  `input[autocomplete="current-password"]`, `input[autocomplete="one-time-code"]`
+  (OTP / MFA screens), and a high-precision `_AUTH_URL_MARKERS` match on the
+  page or any frame URL (`login.microsoftonline.com`, `*.okta.com`,
+  `auth0.com`, `myid.gov.au`, `login.my.gov.au`, `SAMLRequest=`,
+  `response_type=code|token`, `/oauth2|oauth|connect/authorize`,
+  `/saml2/idp`) — stops on the redirect step before the form renders.
+
 ## Still open before trusting this at larger scale
 
-- The settle wait (500ms) and frame-walk are a real hardening, not a proof.
-  A sufficiently slow or unusually-structured real SSO flow could still
-  exceed the settle window; nothing here replaces watching runs closely.
+- The poll + URL-marker set is stronger than a fixed wait, still not a proof.
+  A novel IdP matching none of the markers and rendering its field slower than
+  2000ms could still slip through; nothing here replaces watching runs closely.
+- `_AUTH_URL_MARKERS` is a hand-maintained allowlist of known providers, not a
+  general federated-auth detector.
 - No `hover` tool exists, so menu items that only render on hover (not
   click) are unreachable by design -- this showed up as a real, legitimate
   low `passport_agent` score (1.7) rather than a harness bug, but it means
