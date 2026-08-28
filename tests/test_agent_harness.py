@@ -113,11 +113,11 @@ def test_agent_hard_stops_on_one_time_code_field(fixture_server, browser_page):
 
 
 def test_agent_hard_stops_on_oidc_authorize_redirect_url(fixture_server, browser_page):
-    # A federated-auth redirect URL is an auth boundary even before any
-    # password field has rendered.
+    # A federated-auth redirect URL (an /oauth2/authorize path) is an auth
+    # boundary even before any password field has rendered.
     task = AgentTask(id="t", name="x", description="x", target_hint="x", stop_condition="x")
     client = FakeClient(tool_calls=[
-        ("navigate", {"url": fixture_server + "/service.html?response_type=code&client_id=x"}),
+        ("navigate", {"url": fixture_server + "/oauth2/authorize?response_type=code&client_id=x"}),
         ("read_page", {}),
     ])
 
@@ -125,6 +125,28 @@ def test_agent_hard_stops_on_oidc_authorize_redirect_url(fixture_server, browser
 
     assert trace.outcome == "reached_auth_boundary"
     assert [s.action for s in trace.steps] == ["navigate"]  # stopped before the 2nd action
+
+
+def test_settle_for_login_field_runs_even_when_the_action_raises(fixture_server, browser_page, monkeypatch):
+    # A failed action must still get the settle + login-field poll: a click
+    # that times out may already have started a redirect to a slow SSO page.
+    import au_radar.agent_harness as ah
+
+    calls = []
+    real_settle = ah._settle_for_login_field
+    monkeypatch.setattr(ah, "_settle_for_login_field", lambda page: calls.append(1) or real_settle(page))
+    browser_page.set_default_timeout(300)
+
+    task = AgentTask(id="t", name="x", description="x", target_hint="x", stop_condition="x")
+    client = FakeClient(tool_calls=[
+        ("navigate", {"url": fixture_server + "/index.html"}),
+        ("click", {"description": "this element text does not exist on the page"}),
+        ("finish", {"outcome": "blocked", "evidence": "e"}),
+    ])
+
+    run_agent_task(browser_page, client, task, model="claude-sonnet-5", max_steps=10)
+
+    assert len(calls) >= 2  # once for the successful navigate, once for the failed click
 
 
 @pytest.mark.parametrize("url", [
@@ -142,6 +164,10 @@ def test_url_looks_like_auth_positive(url):
     "https://www.passports.gov.au/renew-passport",
     "https://www.servicesaustralia.gov.au/medicare",
     "https://www.legislation.gov.au/Details/C2009A00028",
+    # dev-doc page that merely quotes an OAuth URL in a query param
+    "https://developer.example.gov.au/guide?example=https://x/authorize%3Fresponse_type%3Dcode",
+    # an ordinary content page whose path is not an /authorize endpoint
+    "https://www.example.gov.au/services/response_type=code-explained",
     "about:blank",
     "",
 ])

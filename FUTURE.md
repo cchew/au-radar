@@ -68,19 +68,27 @@ retry budget on a large enough run:
   2000ms cap.
 - Detection beyond `input[type="password"]`: also
   `input[autocomplete="current-password"]`, `input[autocomplete="one-time-code"]`
-  (OTP / MFA screens), and a high-precision `_AUTH_URL_MARKERS` match on the
-  page or any frame URL (`login.microsoftonline.com`, `*.okta.com`,
-  `auth0.com`, `myid.gov.au`, `login.my.gov.au`, `SAMLRequest=`,
-  `response_type=code|token`, `/oauth2|oauth|connect/authorize`,
-  `/saml2/idp`) — stops on the redirect step before the form renders.
+  (OTP / MFA screens).
+- `_url_looks_like_auth()` matches the *parsed* page/frame URL (not raw
+  substrings, which false-positived on IdP-hosted info pages and dev docs
+  quoting an OAuth URL): known IdP hosts (`login.microsoftonline.com`,
+  `*.okta.com`, `*.auth0.com`, `myid.gov.au`, `login.my.gov.au`), auth path
+  markers (`/oauth2|oauth|connect/authorize`, `/saml2/idp`, `/adfs/ls`,
+  `/protocol/openid-connect/auth`), `SAMLRequest=` in the query, or
+  `response_type=code|token` when the path is an `/authorize` endpoint.
+- The post-action settle/poll now also runs when the action *raised* (a
+  failed click can still have started a redirect to a slow SSO page).
 
 ## Still open before trusting this at larger scale
 
-- The poll + URL-marker set is stronger than a fixed wait, still not a proof.
-  A novel IdP matching none of the markers and rendering its field slower than
-  2000ms could still slip through; nothing here replaces watching runs closely.
-- `_AUTH_URL_MARKERS` is a hand-maintained allowlist of known providers, not a
-  general federated-auth detector.
+- The poll + URL matcher is stronger than a fixed wait, still not a proof.
+  A novel IdP matching no host/path marker and rendering its field slower
+  than 2000ms could still slip through; nothing here replaces watching runs.
+- `_AUTH_HOSTS` / `_AUTH_PATH_MARKERS` are hand-maintained lists of known
+  providers, not a general federated-auth detector. Not covered:
+  passkey-only (`autocomplete="webauthn"`) screens with no password field,
+  closed shadow-DOM login widgets, and IdPs outside the lists (Keycloak on a
+  custom path, Ping, Shibboleth, POST-binding SAML).
 - No `hover` tool exists, so menu items that only render on hover (not
   click) are unreachable by design -- this showed up as a real, legitimate
   low `passport_agent` score (1.7) rather than a harness bug, but it means

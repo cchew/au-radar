@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from urllib.parse import urlparse
 
 from au_radar.anthropic_utils import extract_tool_use
 from au_radar.catalogue import AgentTask, Catalogue
@@ -21,22 +22,25 @@ _LOGIN_FIELD_SELECTORS = (
     'input[autocomplete="one-time-code"]',
 )
 
-# High-precision substrings for federated-auth / OIDC / SAML URLs. Matching one
-# stops the run even before the login form itself has rendered (the redirect
-# step). Kept deliberately narrow to avoid premature stops on ordinary pages.
-_AUTH_URL_MARKERS = (
+# Federated-auth / OIDC / SAML URL detection. Matching stops the run even
+# before the login form itself has rendered (the redirect step). Matched
+# against the *parsed* URL, not as raw substrings, so an informational page on
+# an IdP host or a dev-doc page that merely quotes an OAuth URL does not
+# trigger a premature stop.
+_AUTH_HOSTS = (
     "login.microsoftonline.com",
-    ".okta.com",
+    "okta.com",
     "auth0.com",
     "myid.gov.au",
     "login.my.gov.au",
-    "samlrequest=",
-    "response_type=code",
-    "response_type=token",
+)
+_AUTH_PATH_MARKERS = (
     "/oauth2/authorize",
     "/oauth/authorize",
     "/connect/authorize",
     "/saml2/idp",
+    "/adfs/ls",
+    "/protocol/openid-connect/auth",
 )
 
 TOOLS = [
@@ -116,9 +120,28 @@ class AgentTrace:
     evidence: list[str] = field(default_factory=list)
 
 
+def _host_matches_auth(host: str) -> bool:
+    return any(host == h or host.endswith("." + h) for h in _AUTH_HOSTS)
+
+
 def _url_looks_like_auth(url: str) -> bool:
-    u = (url or "").lower()
-    return any(marker in u for marker in _AUTH_URL_MARKERS)
+    try:
+        parsed = urlparse((url or "").lower())
+    except Exception:
+        return False
+    if _host_matches_auth(parsed.hostname or ""):
+        return True
+    path = parsed.path or ""
+    if any(marker in path for marker in _AUTH_PATH_MARKERS):
+        return True
+    query = parsed.query or ""
+    if "samlrequest=" in query:
+        return True
+    # A bare response_type= can appear in dev docs; only treat it as auth when
+    # it sits on an /authorize path.
+    if "authorize" in path and ("response_type=code" in query or "response_type=token" in query):
+        return True
+    return False
 
 
 def _page_has_login_field(page) -> bool:
@@ -166,6 +189,14 @@ def _settle_for_login_field(page) -> None:
 
 
 def run_agent_task(page, client, task: AgentTask, model: str, max_steps: int = 15) -> AgentTrace:
+    """Drive `page` through one agent task, navigate-only, stopping hard at any
+    auth boundary.
+
+    The caller owns the browser context and is responsible for giving it an
+    identifying, non-impersonating User-Agent before real public sites are
+    touched (spec §7). The `au-radar` CLI does this; a direct library caller
+    must do it too.
+    """
     trace = AgentTrace(task_id=task.id, model=model)
     system_prompt = (
         f"You are navigating a website to complete this task: {task.description}\n"
@@ -206,6 +237,7 @@ def run_agent_task(page, client, task: AgentTask, model: str, max_steps: int = 1
             trace.evidence.append(args["evidence"])
             break
 
+        action_error = None
         try:
             if action == "navigate":
                 page.goto(args["url"])
@@ -215,23 +247,27 @@ def run_agent_task(page, client, task: AgentTask, model: str, max_steps: int = 1
                 page.get_by_placeholder(args["description"]).fill(args["text"])
             elif action == "read_page":
                 pass  # observation captured below regardless of action
-
-            # Let async-rendered content (e.g. an SSO widget injected after the
-            # page settles) appear before the page is read and before the next
-            # loop iteration's guardrail check -- see _settle_for_login_field.
-            _settle_for_login_field(page)
-            observation = page.inner_text("body")
         except Exception as exc:
             # A failed action (element not clickable, navigation timeout,
             # etc.) is real, informative signal about site navigability --
-            # feed it back to the model so it can adapt (try a different
-            # element, a different path) rather than crashing the whole
-            # trial and losing every prior step's real API cost.
-            try:
-                page_state = page.inner_text("body")
-            except Exception:
-                page_state = "(page content unavailable)"
-            observation = f"Action failed: {exc}\n\nCurrent page content:\n{page_state}"
+            # feed it back to the model so it can adapt rather than crashing
+            # the whole trial and losing every prior step's real API cost.
+            action_error = exc
+
+        # Runs on every path, success or failure: a click that raised a nav
+        # timeout may already have kicked off a redirect to a slow SSO page,
+        # so the settle + login-field poll must happen before the next loop
+        # iteration's top-of-loop guardrail check -- see _settle_for_login_field.
+        _settle_for_login_field(page)
+        try:
+            page_state = page.inner_text("body")
+        except Exception:
+            page_state = "(page content unavailable)"
+        observation = (
+            page_state
+            if action_error is None
+            else f"Action failed: {action_error}\n\nCurrent page content:\n{page_state}"
+        )
         trace.steps.append(AgentStep(action=action, args=args, observation=observation))
         # Every tool_use block from this turn needs a matching tool_result in
         # the next message, or the next create() call is rejected outright --
