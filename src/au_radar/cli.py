@@ -23,9 +23,14 @@ import argparse
 import hashlib
 import json
 import os
+import platform
+import subprocess
 import sys
 from datetime import datetime, timezone
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 import au_radar
 from au_radar.catalogue import load_catalogue
@@ -43,9 +48,54 @@ HOVER_CAVEAT = (
 )
 
 
+_PKG_DIR = Path(au_radar.__file__).resolve().parent
+
+
 def bundled_catalogue_path() -> Path:
     """The AU federal-services catalogue shipped inside the package."""
-    return Path(au_radar.__file__).resolve().parent / "data" / "catalogue.yaml"
+    return _PKG_DIR / "data" / "catalogue.yaml"
+
+
+def _is_bundled_catalogue(path: Path) -> bool:
+    try:
+        return Path(path).resolve() == bundled_catalogue_path().resolve()
+    except OSError:
+        return False
+
+
+def _harness_source_sha256() -> str:
+    """Hash of the prompt- and rubric-bearing source, so a run records what
+    scoring logic produced it even though the prompts carry no version string."""
+    h = hashlib.sha256()
+    for name in ("judge.py", "chat_harness.py", "agent_harness.py"):
+        h.update((_PKG_DIR / name).read_bytes())
+    return h.hexdigest()
+
+
+def _pkg_ver(name: str):
+    try:
+        return _pkg_version(name)
+    except PackageNotFoundError:
+        return None
+
+
+def _git_provenance() -> dict:
+    def _git(*args):
+        return subprocess.run(
+            ["git", "-C", str(_PKG_DIR), *args],
+            capture_output=True, text=True, timeout=5,
+        )
+    try:
+        head = _git("rev-parse", "HEAD")
+        if head.returncode != 0:
+            return {"git_sha": None, "git_dirty": None}
+        dirty = _git("status", "--porcelain")
+        return {
+            "git_sha": head.stdout.strip(),
+            "git_dirty": bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
+        }
+    except (OSError, subprocess.SubprocessError):
+        return {"git_sha": None, "git_dirty": None}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -125,19 +175,22 @@ def _build_plan(args, catalogue, chat_services, agent_tasks) -> dict:
 
     all_chat = list(chat_services) + list(leg_chat)
     all_agent = list(agent_tasks) + list(leg_agent)
+    catalogue_path = args.catalogue or bundled_catalogue_path()
 
     chat_calls = sum(args.n_trials * (len(s.turns) + 1) for s in all_chat)  # turns + 1 judge
-    agent_calls = len(all_agent) * args.n_trials * (args.max_steps + 1)      # upper bound: max_steps + 1 judge
+    agent_calls = len(all_agent) * args.n_trials * (args.max_steps + 1)      # ceiling: max_steps + 1 judge
 
     return {
-        "catalogue_path": str(args.catalogue or bundled_catalogue_path()),
-        "catalogue_sha256": _sha256(args.catalogue or bundled_catalogue_path()),
+        "catalogue_path": str(catalogue_path),
+        "catalogue_sha256": _sha256(catalogue_path),
+        "radar_anchored": _is_bundled_catalogue(catalogue_path),
         "model": args.model,
         "judge_model": args.judge_model or args.model,
         "chat_ids": [s.id for s in all_chat],
         "agent_ids": [t.id for t in all_agent],
         "include_legislation": args.include_legislation,
         "n_trials": args.n_trials,
+        "max_retries": args.max_retries,
         "chat_calls": chat_calls,
         "agent_calls": agent_calls,
     }
@@ -152,29 +205,51 @@ def _print_plan(plan: dict, *, dry_run: bool) -> None:
     print(f"  agent tasks    : {len(plan['agent_ids'])}  ({', '.join(plan['agent_ids']) or '—'})")
     print(f"  legislation    : {'included' if plan['include_legislation'] else 'not included'}")
     print(f"  trials / item  : {plan['n_trials']}")
+    base = plan["chat_calls"] + plan["agent_calls"]
     print(
-        f"  API calls (UB) : ~{plan['chat_calls'] + plan['agent_calls']} "
-        f"(chat ~{plan['chat_calls']}, agent ~{plan['agent_calls']})"
+        f"  est. API calls : ~{base} (chat ~{plan['chat_calls']}, agent ~{plan['agent_calls']}); "
+        f"up to ~{base * plan['max_retries']} with retries"
     )
+    if not plan["radar_anchored"]:
+        print(
+            "  note           : custom catalogue — scores are internally consistent but\n"
+            "                   NOT anchored to RADAR's published country numbers."
+        )
     if dry_run:
         print("\ndry run — no API calls made, nothing written.")
 
 
-def _run_metadata(args, catalogue_path: Path, judge_model: str, contact) -> dict:
+def _run_metadata(args, plan: dict, judge_model: str, contact) -> dict:
+    from au_radar.aggregate_agent import DISAGREEMENT_THRESHOLD
+
     return {
         "au_radar_version": au_radar.__version__,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "completed": False,
+        **_git_provenance(),
+        "python_version": platform.python_version(),
+        "platform": platform.platform(),
+        "anthropic_version": _pkg_ver("anthropic"),
+        "playwright_version": _pkg_ver("playwright"),
+        "chromium_version": None,  # filled on completion if an agent run launched a browser
+        "harness_source_sha256": _harness_source_sha256(),
+        "temperature": "unset (Anthropic API default)",
+        "disagreement_threshold": DISAGREEMENT_THRESHOLD,
         "model": args.model,
         "judge_model": judge_model,
-        "catalogue_path": str(catalogue_path),
-        "catalogue_sha256": _sha256(catalogue_path),
+        "catalogue_path": plan["catalogue_path"],
+        "catalogue_sha256": plan["catalogue_sha256"],
+        "radar_anchored": plan["radar_anchored"],
         "n_trials": args.n_trials,
         "max_steps": args.max_steps,
         "max_retries": args.max_retries,
+        "headless": args.headless,
         "include_legislation": args.include_legislation,
         "legislation_provision": args.legislation_provision if args.include_legislation else None,
         "services_selector": args.services,
         "agent_tasks_selector": args.agent_tasks,
+        "resolved_chat_ids": plan["chat_ids"],
+        "resolved_agent_ids": plan["agent_ids"],
         "contact": contact,
     }
 
@@ -184,6 +259,7 @@ def _write_json(path: Path, payload: dict) -> None:
 
 
 def main(argv=None) -> int:
+    load_dotenv()
     parser = build_parser()
     args = parser.parse_args(argv)
 
@@ -205,8 +281,15 @@ def main(argv=None) -> int:
     except ValueError as exc:
         parser.error(str(exc))
 
-    runs_agent = bool(agent_tasks) or (args.include_legislation and bool(catalogue.legislation_comparators))
-    contact = args.contact or os.environ.get(CONTACT_ENV)
+    runs_legislation = args.include_legislation and bool(catalogue.legislation_comparators)
+    if not chat_services and not agent_tasks and not runs_legislation:
+        parser.error(
+            "nothing selected: --services and --agent-tasks are both 'none' and no "
+            "legislation trio was requested. Nothing to run."
+        )
+
+    runs_agent = bool(agent_tasks) or runs_legislation
+    contact = (args.contact or os.environ.get(CONTACT_ENV) or "").strip() or None
     if runs_agent and not contact:
         parser.error(
             f"agent runs need an identifying contact for the crawler User-Agent (spec §7). "
@@ -227,10 +310,26 @@ def main(argv=None) -> int:
 
     _print_plan(plan, dry_run=False)
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    _write_json(args.out_dir / "run-metadata.json", _run_metadata(args, catalogue_path, judge_model, contact))
+    metadata_path = args.out_dir / "run-metadata.json"
+    metadata = _run_metadata(args, plan, judge_model, contact)
+    _write_json(metadata_path, metadata)
 
-    _run(args, catalogue, chat_services, agent_tasks, api_key, judge_model, contact)
+    chromium_version = _run(
+        args, catalogue, chat_services, agent_tasks, api_key, judge_model, contact,
+        radar_anchored=plan["radar_anchored"],
+    )
+
+    metadata["completed"] = True
+    metadata["chromium_version"] = chromium_version
+    _write_json(metadata_path, metadata)
+
     print("\n" + HOVER_CAVEAT, file=sys.stderr)
+    if not plan["radar_anchored"]:
+        print(
+            "Reminder: this run used a custom catalogue — its scores are internally "
+            "consistent but are NOT anchored to RADAR's published country numbers.",
+            file=sys.stderr,
+        )
     return 0
 
 
@@ -308,7 +407,9 @@ def _run_agent_task(browser, client, task, user_agent, args, judge_model, result
     results.append(aggregate_agent_scores(task.id, scores))
 
 
-def _run(args, catalogue, chat_services, agent_tasks, api_key, judge_model, contact):
+def _run(args, catalogue, chat_services, agent_tasks, api_key, judge_model, contact, *, radar_anchored=True):
+    """Returns the Chromium version string if an agent run launched a browser,
+    else None."""
     import anthropic
     from playwright.sync_api import sync_playwright
 
@@ -321,6 +422,7 @@ def _run(args, catalogue, chat_services, agent_tasks, api_key, judge_model, cont
 
     client = anthropic.Anthropic(api_key=api_key)
     out_dir = str(args.out_dir)
+    chromium_version = None
 
     leg_chat, leg_agent = ([], [])
     if args.include_legislation:
@@ -337,6 +439,7 @@ def _run(args, catalogue, chat_services, agent_tasks, api_key, judge_model, cont
     if all_agent_tasks:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=args.headless)
+            chromium_version = browser.version
             try:
                 user_agent = _build_user_agent(browser, contact)
                 print(f"User-Agent: {user_agent}")
@@ -351,19 +454,31 @@ def _run(args, catalogue, chat_services, agent_tasks, api_key, judge_model, cont
     leg_task_ids = {t.id for t in leg_agent}
     non_leg_chat = [r for r in chat_results if r.service_id not in leg_service_ids]
     non_leg_agent = [r for r in agent_results if r.task_id not in leg_task_ids]
-    if not non_leg_chat or not non_leg_agent:
-        print("Partial run (missing chat or non-legislation agent results) — skipping scorecard/charts/report.")
-        return
-
-    scorecard = build_scorecard(chat_results, agent_results, leg_task_ids, leg_service_ids)
-    print(f"Overall AU score: {scorecard.overall_score} (chat {scorecard.chat_mean}, agent {scorecard.agent_mean})")
 
     legislation_scorecard = None
-    if leg_chat:
+    if leg_chat and leg_agent:
         legislation_scorecard = build_legislation_scorecard(
             [r for r in chat_results if r.service_id in leg_service_ids],
             [r for r in agent_results if r.task_id in leg_task_ids],
         )
+
+    if not non_leg_chat or not non_leg_agent:
+        # Not enough of the general basket to build the overall scorecard or the
+        # charts; still emit whatever report we can so the caveats are on disk.
+        print("Partial run — skipping overall scorecard and charts.")
+        if non_leg_chat or non_leg_agent or legislation_scorecard is not None:
+            write_findings_summary(
+                None, legislation_scorecard, chat_results, agent_results,
+                os.path.join(out_dir, "findings-summary.md"), radar_anchored=radar_anchored,
+            )
+            print(f"Wrote partial findings summary to {out_dir}/findings-summary.md")
+        return chromium_version
+
+    scorecard = build_scorecard(
+        chat_results, agent_results, leg_task_ids, leg_service_ids, radar_anchored=radar_anchored,
+    )
+    label = "Overall AU score" if radar_anchored else "Overall score"
+    print(f"{label}: {scorecard.overall_score} (chat {scorecard.chat_mean}, agent {scorecard.agent_mean})")
 
     plot_service_scores(non_leg_chat, os.path.join(out_dir, "service-scores.png"))
     task_to_chat_id = {t.id: t.chat_service_id for t in agent_tasks}
@@ -371,14 +486,12 @@ def _run(args, catalogue, chat_services, agent_tasks, api_key, judge_model, cont
         non_leg_chat, non_leg_agent, os.path.join(out_dir, "guidance-to-reach-gap.png"), task_to_chat_id,
     )
 
-    if legislation_scorecard is not None:
-        write_findings_summary(
-            scorecard, legislation_scorecard, chat_results, agent_results,
-            os.path.join(out_dir, "findings-summary.md"),
-        )
-        print(f"Wrote findings summary to {out_dir}/findings-summary.md")
-    else:
-        print("Skipped findings-summary.md (needs --include-legislation for the full legislation scorecard).")
+    write_findings_summary(
+        scorecard, legislation_scorecard, chat_results, agent_results,
+        os.path.join(out_dir, "findings-summary.md"), radar_anchored=radar_anchored,
+    )
+    print(f"Wrote findings summary to {out_dir}/findings-summary.md")
+    return chromium_version
 
 
 if __name__ == "__main__":

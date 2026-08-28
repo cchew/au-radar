@@ -39,6 +39,11 @@ class Catalogue:
 
 def load_catalogue(path: str) -> Catalogue:
     raw = yaml.safe_load(Path(path).read_text())
+    if not isinstance(raw, dict):
+        raise ValueError(f"catalogue {path} is not a YAML mapping")
+    for key in ("chat_services", "agent_tasks", "legislation_comparators"):
+        if key not in raw or raw[key] is None:
+            raise ValueError(f"catalogue {path} is missing required key '{key}' (use [] if empty)")
 
     chat_services = [
         ChatService(
@@ -59,8 +64,33 @@ def load_catalogue(path: str) -> Catalogue:
         LegislationComparator(id=c["id"], name=c["name"], base_url=c["base_url"])
         for c in raw["legislation_comparators"]
     ]
+
+    _validate(chat_services, agent_tasks, legislation_comparators, path)
     return Catalogue(
         chat_services=chat_services,
         agent_tasks=agent_tasks,
         legislation_comparators=legislation_comparators,
     )
+
+
+def _validate(chat_services, agent_tasks, legislation_comparators, path: str) -> None:
+    for group_name, items in (
+        ("chat_services", chat_services),
+        ("agent_tasks", agent_tasks),
+        ("legislation_comparators", legislation_comparators),
+    ):
+        ids = [i.id for i in items]
+        if any(not i for i in ids):
+            raise ValueError(f"catalogue {path}: every {group_name} entry needs a non-empty id")
+        dupes = {i for i in ids if ids.count(i) > 1}
+        if dupes:
+            raise ValueError(f"catalogue {path}: duplicate {group_name} id(s): {sorted(dupes)}")
+
+    # RADAR's chat protocol is exactly three turns (spec §3.1). Enforced so a
+    # bring-your-own catalogue can't silently run a different instrument.
+    for service in chat_services:
+        if not isinstance(service.turns, list) or len(service.turns) != 3:
+            raise ValueError(
+                f"catalogue {path}: chat service '{service.id}' must have exactly 3 turns "
+                f"(has {len(service.turns) if isinstance(service.turns, list) else 'non-list'})"
+            )

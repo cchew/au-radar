@@ -43,6 +43,10 @@ Every chat and agent prompt runs 2-3 times (spec §3.2); results below are repor
 
 ### Agent tasks (mean ± spread)
 
+The agent has no `hover` tool: a task whose only path to a service runs through a hover-to-open menu is unreachable by design, so a low agent score there reflects a harness capability gap as much as a site problem. In the reference AU run this substantially depressed `passport_agent` (see the project `FUTURE.md`).
+
+Navigation efficiency (one of the six agent dimensions) uses a project-defined step-count-to-0-4 mapping, not a formula specified by RADAR.
+
 | Task | Mean | Spread |
 |---|---|---|
 | passport_agent | 1.7 | ± 0.0 |
@@ -66,3 +70,6 @@ Repeated agent trials disagreed by more than 2.0 points (inconsistent navigation
 - English-only chat prompts — no AU-community-language legibility signal.
 - Agent runs from a single network vantage point.
 - No manual ground-truth verification of judge or agent scores.
+- The agent has no `hover` tool, so hover-only navigation menus are unreachable by design; affected agent scores understate real-world reachability.
+- Navigation efficiency uses a project-defined step-count mapping, not a RADAR-specified formula.
+- LLM calls run at the Anthropic API default temperature (not pinned) and against a model alias, not a dated snapshot; scores carry run-to-run non-determinism.

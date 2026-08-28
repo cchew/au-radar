@@ -9,12 +9,13 @@ class Scorecard:
     chat_mean: float
     agent_mean: float
     overall_score: float
-    radar_anchor_score: float = RADAR_ANCHOR_SCORE
-    radar_anchor_rank: int = RADAR_ANCHOR_RANK
+    radar_anchor_score: float | None = RADAR_ANCHOR_SCORE
+    radar_anchor_rank: int | None = RADAR_ANCHOR_RANK
 
 
 def build_scorecard(
     chat_results, agent_results, legislation_task_ids: set[str], legislation_service_ids: set[str],
+    *, radar_anchored: bool = True,
 ) -> Scorecard:
     non_legislation_chat = [r for r in chat_results if r.service_id not in legislation_service_ids]
     chat_mean = round(sum(r.mean_total for r in non_legislation_chat) / len(non_legislation_chat), 2)
@@ -24,10 +25,15 @@ def build_scorecard(
         sum(r.mean_total for r in non_legislation_agent) / len(non_legislation_agent), 2
     )
 
+    # The published RADAR anchor only means something for a RADAR-style federal
+    # basket; a custom catalogue gets an internally consistent score with no
+    # anchor claimed.
     return Scorecard(
         chat_mean=chat_mean,
         agent_mean=agent_mean,
         overall_score=round((chat_mean + agent_mean) / 2, 2),
+        radar_anchor_score=RADAR_ANCHOR_SCORE if radar_anchored else None,
+        radar_anchor_rank=RADAR_ANCHOR_RANK if radar_anchored else None,
     )
 
 
