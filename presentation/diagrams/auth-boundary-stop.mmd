@@ -1,0 +1,10 @@
+graph TD
+    A["agent selects an action"] --> B["execute click, type or navigate"]
+    B --> C["settle 500ms, then poll every 250ms up to 2000ms"]
+    C --> D{"login field in any frame? password, current-password or one-time-code input"}
+    D -- no --> G{"parsed page or frame URL matches a known IdP host or an OIDC / SAML path marker?"}
+    G -- no --> H["continue: feed page content back to the agent"]
+    H --> A
+    D -- yes --> STOP["hard stop: record reached_auth_boundary, never authenticate or submit"]
+    G -- yes --> STOP
+    B -.->|"action raised"| C

@@ -1,0 +1,11 @@
+graph LR
+    C["catalogue.yaml: 15 chat services, 4 agent tasks, 3 legislation comparators"]
+    C --> CH["chat harness (Claude API, text only)"]
+    C --> AG["agent harness (Claude + Playwright, navigate-only, stop at auth)"]
+    CH -->|"2-3 trials each"| CJ["judge: verifiability, specificity, depth, transparency"]
+    AG -->|"2-3 trials each"| AJ["judge: 6-dimension RADAR formula"]
+    CJ --> RJ["results/*.json"]
+    AJ --> RJ
+    RJ --> AGG["aggregator: mean plus or minus spread, disagreement flags"]
+    AGG --> SC["AU scorecard + legislation mini-scorecard"]
+    AGG --> CHT["charts + findings summary"]
