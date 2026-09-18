@@ -1,5 +1,7 @@
 # au-radar
 
+_Blog post: [Can an AI Agent Reach an Australian Government Service?](https://www.herdmentality.xyz/blog/au-sovereign-legibility)_
+
 A RADAR-consistent AU sovereign-legibility benchmark: how well can an LLM *describe*
 Australian federal government services versus actually *reach* them, and how does that
 compare to a similar test applied to legislation lookup?
